@@ -1,0 +1,12 @@
+.git
+.gitignore
+*.md
+logs/
+data/
+deploy/
+scripts/
+.env
+.env.*
+portfolio-ui/node_modules
+portfolio-ui/dist
+**/target/

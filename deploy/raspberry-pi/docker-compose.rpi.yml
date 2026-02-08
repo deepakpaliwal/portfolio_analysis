@@ -1,0 +1,44 @@
+# ============================================================
+# Docker Compose override for Raspberry Pi cluster
+# Optimized resource limits for Pi hardware (4GB RAM)
+#
+# Usage: docker compose -f docker-compose.yml -f deploy/raspberry-pi/docker-compose.rpi.yml --profile dev up -d
+# ============================================================
+services:
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  portfolio-api:
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 384M
+    environment:
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+
+  portfolio-ui:
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  portfolio-batch:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    environment:
+      JAVA_OPTS: "-Xmx768m -Xms256m"
+      SPARK_DRIVER_MEMORY: "512m"
+      SPARK_EXECUTOR_MEMORY: "512m"
