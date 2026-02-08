@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.portfolio</groupId>
+        <artifactId>portfolio-analysis</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>portfolio-db</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Portfolio DB</name>
+    <description>Liquibase DDL/DML migrations for Portfolio Analysis</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.liquibase</groupId>
+                <artifactId>liquibase-maven-plugin</artifactId>
+                <version>${liquibase.version}</version>
+                <configuration>
+                    <propertyFile>src/main/resources/liquibase.properties</propertyFile>
+                    <changeLogFile>db/changelog/db.changelog-master.xml</changeLogFile>
+                </configuration>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <db.url>jdbc:h2:file:./data/portfolio;MODE=PostgreSQL;AUTO_SERVER=TRUE</db.url>
+                <db.driver>org.h2.Driver</db.driver>
+                <db.username>sa</db.username>
+                <db.password></db.password>
+            </properties>
+        </profile>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <db.url>jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/portfolio_dev</db.url>
+                <db.driver>org.postgresql.Driver</db.driver>
+                <db.username>${DB_USERNAME:portfolio}</db.username>
+                <db.password>${DB_PASSWORD:portfolio}</db.password>
+            </properties>
+        </profile>
+        <profile>
+            <id>cat</id>
+            <properties>
+                <db.url>jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/portfolio_cat</db.url>
+                <db.driver>org.postgresql.Driver</db.driver>
+                <db.username>${DB_USERNAME:portfolio}</db.username>
+                <db.password>${DB_PASSWORD:portfolio}</db.password>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <db.url>jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/portfolio_prod</db.url>
+                <db.driver>org.postgresql.Driver</db.driver>
+                <db.username>${DB_USERNAME:portfolio}</db.username>
+                <db.password>${DB_PASSWORD:portfolio}</db.password>
+            </properties>
+        </profile>
+    </profiles>
+</project>

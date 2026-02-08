@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- ============================================ -->
+    <!-- DDL: Schema creation and modifications       -->
+    <!-- ============================================ -->
+    <include file="db/changelog/ddl/001-create-users-table.sql"/>
+    <include file="db/changelog/ddl/002-create-portfolios-table.sql"/>
+    <include file="db/changelog/ddl/003-create-holdings-table.sql"/>
+    <include file="db/changelog/ddl/004-create-transactions-table.sql"/>
+    <include file="db/changelog/ddl/005-create-market-data-table.sql"/>
+    <include file="db/changelog/ddl/007-create-strategies-table.sql"/>
+    <include file="db/changelog/ddl/006-create-trade-orders-table.sql"/>
+    <include file="db/changelog/ddl/008-create-broker-accounts-table.sql"/>
+    <include file="db/changelog/ddl/009-create-subscriptions-table.sql"/>
+    <include file="db/changelog/ddl/010-create-alert-rules-table.sql"/>
+    <include file="db/changelog/ddl/011-create-batch-jobs-table.sql"/>
+    <include file="db/changelog/ddl/012-create-screener-reports-table.sql"/>
+    <include file="db/changelog/ddl/013-create-admin-audit-log-table.sql"/>
+    <include file="db/changelog/ddl/014-create-feature-toggles-table.sql"/>
+
+    <!-- ============================================ -->
+    <!-- DML: Seed data and reference data            -->
+    <!-- ============================================ -->
+    <include file="db/changelog/dml/001-seed-default-strategies.sql"/>
+    <include file="db/changelog/dml/002-seed-feature-toggles.sql"/>
+    <include file="db/changelog/dml/003-seed-sample-users.sql"/>
+    <include file="db/changelog/dml/004-seed-sample-portfolios.sql"/>
+    <include file="db/changelog/dml/005-seed-sample-market-data.sql"/>
+
+</databaseChangeLog>
