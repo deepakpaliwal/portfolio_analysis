@@ -21,6 +21,11 @@
    - 4.7 [Strategy Engine](#47-strategy-engine)
    - 4.8 [Automated Trading](#48-automated-trading)
    - 4.9 [Reporting & Dashboards](#49-reporting--dashboards)
+   - 4.10 [Admin Panel](#410-admin-panel)
+   - 4.11 [Freemium & Subscription Model](#411-freemium--subscription-model)
+   - 4.12 [Alerting & Notifications](#412-alerting--notifications)
+   - 4.13 [Log Search & Management](#413-log-search--management)
+   - 4.14 [Batch Processing & Deep Analysis](#414-batch-processing--deep-analysis)
 5. [Non-Functional Requirements](#5-non-functional-requirements)
    - 5.1 [Performance](#51-performance)
    - 5.2 [Scalability](#52-scalability)
@@ -31,6 +36,8 @@
    - 5.7 [Maintainability](#57-maintainability)
    - 5.8 [Compliance & Regulatory](#58-compliance--regulatory)
    - 5.9 [Observability](#59-observability)
+   - 5.10 [Testing & Quality Assurance](#510-testing--quality-assurance)
+   - 5.11 [Documentation](#511-documentation)
 6. [Data Model (High-Level)](#6-data-model-high-level)
 7. [External Integrations](#7-external-integrations)
 8. [Glossary](#8-glossary)
@@ -65,58 +72,76 @@ The system covers portfolio construction, real-time and historical market data a
 
 ## 2. System Overview
 
-The Portfolio Analysis Application is a full-stack web application that provides:
+The Portfolio Analysis Application is a **microservices-based** full-stack web application that provides:
 
 - **Portfolio Construction** — Create and manage portfolios containing stocks, bonds, options, cash, real estate, retirement funds, and cryptocurrencies.
 - **Market Intelligence** — Screen individual tickers and entire sectors by aggregating market data, financial statements, SEC filings, and analyst recommendations.
 - **Risk Analytics** — Calculate Value at Risk (VaR), portfolio volatility, beta against S&P 500, and other risk metrics.
 - **Hedging & Correlation** — Identify correlated and inversely-correlated assets to suggest hedging opportunities.
 - **Strategy & Automation** — Suggest money-making strategies and execute trades automatically on behalf of the user based on a selected strategy.
+- **Admin Panel** — Centralized administration interface for system configuration, user management, feature toggles, and subscription plan management.
+- **Batch Analytics** — Scheduled batch processing for deep data analysis, recommendation generation, and portfolio optimization.
+- **Freemium Model** — Tiered subscription model with free basic features and paid premium capabilities.
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                      React Frontend                      │
-│         (Dashboard, Screener, Portfolio, Trading)         │
-└──────────────────────┬───────────────────────────────────┘
-                       │  REST / WebSocket
-┌──────────────────────▼───────────────────────────────────┐
-│                  Spring Boot Backend                     │
-│  ┌────────────┐ ┌───────────┐ ┌────────────────────┐    │
-│  │ Portfolio   │ │ Screener  │ │ Risk & Analytics   │    │
-│  │ Service     │ │ Service   │ │ Engine             │    │
-│  └────────────┘ └───────────┘ └────────────────────┘    │
-│  ┌────────────┐ ┌───────────┐ ┌────────────────────┐    │
-│  │ Strategy   │ │ Trading   │ │ Market Data        │    │
-│  │ Engine     │ │ Executor  │ │ Ingestion Service  │    │
-│  └────────────┘ └───────────┘ └────────────────────┘    │
-└──────────┬──────────────┬────────────────────────────────┘
-           │              │
-     ┌─────▼─────┐  ┌────▼─────┐
-     │ PostgreSQL │  │    H2    │
-     │ (Production│  │  (Local/ │
-     │  Store)    │  │   Dev)   │
-     └───────────┘  └──────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                          React Frontend                              │
+│   (Dashboard, Screener, Portfolio, Trading, Admin Panel)             │
+└──────────────────────┬───────────────────────────────────────────────┘
+                       │  REST / WebSocket / API Gateway
+┌──────────────────────▼───────────────────────────────────────────────┐
+│                       API Gateway / BFF                               │
+│         (Routing, Auth, Rate Limiting, Load Balancing)                │
+└──┬──────────┬──────────┬──────────┬──────────┬──────────┬────────────┘
+   │          │          │          │          │          │
+┌──▼───┐  ┌──▼───┐  ┌──▼───┐  ┌──▼───┐  ┌──▼───┐  ┌──▼────────────┐
+│User &│  │Port- │  │Screen│  │Risk &│  │Strat-│  │ Batch         │
+│Auth  │  │folio │  │er    │  │Analy-│  │egy & │  │ Processing    │
+│Micro │  │Micro │  │Micro │  │tics  │  │Trade │  │ Service       │
+│svc   │  │svc   │  │svc   │  │Micro │  │Micro │  │ (Deep Analy-  │
+│      │  │      │  │      │  │svc   │  │svc   │  │  sis & Reco)  │
+└──┬───┘  └──┬───┘  └──┬───┘  └──┬───┘  └──┬───┘  └──┬────────────┘
+   │         │         │         │         │          │
+┌──▼─────────▼─────────▼─────────▼─────────▼──────────▼────────────┐
+│                    Message Broker (Kafka / RabbitMQ)               │
+└──────┬──────────────┬──────────────────────────┬─────────────────┘
+       │              │                          │
+ ┌─────▼─────┐  ┌────▼─────┐  ┌─────────────────▼──────────────┐
+ │ PostgreSQL │  │    H2    │  │  ELK / OpenSearch               │
+ │ (Production│  │  (Local/ │  │  (Centralized Log Search &      │
+ │  Store)    │  │   Dev)   │  │   Management)                   │
+ └───────────┘  └──────────┘  └────────────────────────────────┘
 ```
 
 ---
 
 ## 3. Technology Stack
 
-| Layer            | Technology                          | Purpose                                      |
-|------------------|-------------------------------------|----------------------------------------------|
-| Frontend         | React (TypeScript)                  | Single-page application UI                   |
-| State Management | Redux Toolkit / React Query         | Client-side state and server-state caching   |
-| Charting         | Recharts / D3.js                    | Portfolio charts, risk visualizations        |
-| Backend          | Spring Boot 3.x (Java 21+)         | REST API, business logic, scheduling         |
-| ORM              | Spring Data JPA / Hibernate         | Database access and entity mapping           |
-| Production DB    | PostgreSQL 16+                      | Primary persistent data store                |
-| Local / Dev DB   | H2 (in-memory or file-based)        | Local development and integration testing    |
-| Messaging        | Spring WebSocket / STOMP            | Real-time price updates and notifications    |
-| Scheduling       | Spring Scheduler / Quartz           | Periodic data ingestion and strategy runs    |
-| Security         | Spring Security + OAuth 2.0 / JWT   | Authentication and authorization             |
-| Build            | Maven / Gradle                      | Backend build and dependency management      |
-| Frontend Build   | Vite                                | Frontend bundling and dev server             |
-| Containerization | Docker / Docker Compose             | Local and production deployment              |
+| Layer              | Technology                                         | Purpose                                                |
+|--------------------|----------------------------------------------------|--------------------------------------------------------|
+| **IDE**            | **IntelliJ IDEA**                                  | Primary development IDE for backend and frontend       |
+| Frontend           | React (TypeScript)                                 | Single-page application UI                             |
+| State Management   | Redux Toolkit / React Query                        | Client-side state and server-state caching             |
+| Charting           | Recharts / D3.js                                   | Portfolio charts, risk visualizations                  |
+| Backend            | Spring Boot 3.x (Java 21+)                        | REST API, business logic, scheduling                   |
+| Architecture       | Spring Cloud / Microservices                       | Service discovery, config server, circuit breakers     |
+| API Gateway        | Spring Cloud Gateway                               | Request routing, rate limiting, load balancing          |
+| ORM                | Spring Data JPA / Hibernate                        | Database access and entity mapping                     |
+| Production DB      | PostgreSQL 16+                                     | Primary persistent data store                          |
+| Local / Dev DB     | H2 (in-memory or file-based)                       | Local development and integration testing              |
+| Messaging          | Apache Kafka / RabbitMQ                            | Async inter-service communication and event streaming  |
+| WebSocket          | Spring WebSocket / STOMP                           | Real-time price updates and notifications              |
+| Scheduling         | Spring Scheduler / Quartz                          | Periodic data ingestion and strategy runs              |
+| Batch Processing   | Spring Batch                                       | Deep data analysis, recommendation, and batch jobs     |
+| Security           | Spring Security + OAuth 2.0 / JWT                  | Authentication and authorization                       |
+| Social Login       | Google OAuth 2.0, Meta (Facebook) Login            | Third-party social authentication providers            |
+| **Build**          | **Apache Maven**                                   | Backend build and dependency management                |
+| Frontend Build     | Vite                                               | Frontend bundling and dev server                       |
+| Containerization   | Docker / Docker Compose                            | Local and production deployment                        |
+| Service Mesh       | Kubernetes / Docker Swarm (optional)               | Microservices orchestration and scaling                |
+| Log Search         | ELK Stack (Elasticsearch, Logstash, Kibana) / OpenSearch | Centralized log aggregation, search, and visualization |
+| Alerting           | Spring Mail, Twilio SMS API                        | Email and SMS alerting and notifications               |
+| Payments           | Stripe / PayPal                                    | Freemium subscription billing and payment processing   |
 
 ---
 
@@ -126,14 +151,18 @@ The Portfolio Analysis Application is a full-stack web application that provides
 
 | ID          | Requirement                                                                                          | Priority |
 |-------------|------------------------------------------------------------------------------------------------------|----------|
-| FR-UM-001   | The system SHALL allow users to register with email and password.                                     | High     |
-| FR-UM-002   | The system SHALL support OAuth 2.0 login (Google, GitHub).                                           | Medium   |
+| FR-UM-001   | The system SHALL allow users to register with their own email and password (self-registration).       | High     |
+| FR-UM-002   | The system SHALL support OAuth 2.0 login via **Google** identity provider.                           | High     |
+| FR-UM-002a  | The system SHALL support OAuth 2.0 login via **Meta (Facebook)** identity provider.                  | High     |
+| FR-UM-002b  | The system SHALL allow users to choose between social login (Google/Meta) or registering with their own password during sign-up. | High |
 | FR-UM-003   | The system SHALL enforce email verification before granting full access.                              | High     |
 | FR-UM-004   | The system SHALL support role-based access control (VIEWER, TRADER, ADMIN).                          | High     |
 | FR-UM-005   | The system SHALL allow users to configure notification preferences (email, in-app, SMS).             | Medium   |
 | FR-UM-006   | The system SHALL provide a user profile page to manage personal information and linked brokerage accounts. | Medium |
 | FR-UM-007   | The system SHALL enforce password complexity rules (minimum 12 characters, mixed case, digits, symbols). | High  |
 | FR-UM-008   | The system SHALL support multi-factor authentication (TOTP-based).                                   | High     |
+| FR-UM-009   | The system SHALL allow users who registered via social login to optionally set a local password for backup access. | Medium |
+| FR-UM-010   | The system SHALL support account linking — a user who registered with email/password can later link their Google or Meta account, and vice versa. | Medium |
 
 ### 4.2 Portfolio Management
 
@@ -306,6 +335,89 @@ The Portfolio Analysis Application is a full-stack web application that provides
 | FR-RD-006   | The system SHALL export reports in PDF, CSV, and Excel formats.                                       | Medium   |
 | FR-RD-007   | The system SHALL provide real-time portfolio value updates via WebSocket push.                         | High     |
 
+### 4.10 Admin Panel
+
+| ID          | Requirement                                                                                          | Priority |
+|-------------|------------------------------------------------------------------------------------------------------|----------|
+| FR-AP-001   | The system SHALL provide a web-based **Admin Panel** accessible only to users with the ADMIN role.   | High     |
+| FR-AP-002   | The Admin Panel SHALL allow administrators to manage users: view, activate, deactivate, delete, and change user roles. | High |
+| FR-AP-003   | The Admin Panel SHALL provide a **system configuration** interface for modifying application-wide settings (e.g., rate limits, trading limits, maintenance mode) without redeployment. | High |
+| FR-AP-004   | The Admin Panel SHALL allow administrators to manage **feature toggles** to enable or disable features globally or per subscription tier. | High |
+| FR-AP-005   | The Admin Panel SHALL provide a **subscription plan management** interface to create, modify, and retire freemium/premium plans. | High |
+| FR-AP-006   | The Admin Panel SHALL display a **system health dashboard** showing service status, uptime, resource utilization, and error rates across all microservices. | Medium |
+| FR-AP-007   | The Admin Panel SHALL allow administrators to broadcast **system-wide announcements** and maintenance notifications to all users. | Medium |
+| FR-AP-008   | The Admin Panel SHALL provide an **audit log viewer** with filtering and search capabilities for reviewing sensitive operations. | High |
+| FR-AP-009   | The Admin Panel SHALL allow administrators to manage **API rate limits** and override limits for specific users or tiers. | Medium |
+| FR-AP-010   | The Admin Panel SHALL provide tools to manage **batch jobs**: trigger, pause, resume, and view execution history of batch processing tasks. | Medium |
+| FR-AP-011   | The Admin Panel SHALL allow administrators to view and manage **alerting rules** for email and SMS notifications. | Medium |
+| FR-AP-012   | All changes made via the Admin Panel SHALL be recorded in the audit log with the administrator's identity, timestamp, and details of the change. | High |
+
+### 4.11 Freemium & Subscription Model
+
+| ID          | Requirement                                                                                          | Priority |
+|-------------|------------------------------------------------------------------------------------------------------|----------|
+| FR-FM-001   | The system SHALL implement a **Freemium subscription model** with at least two tiers: **Free** and **Premium**. | High |
+| FR-FM-002   | The **Free tier** SHALL include: single portfolio (up to 20 holdings), basic screener (limited to 5 screens/day), basic risk metrics (portfolio volatility, beta), and delayed market data (15-minute delay). | High |
+| FR-FM-003   | The **Premium tier** SHALL include: unlimited portfolios and holdings, full screener with unlimited screens, advanced risk analytics (VaR, CVaR, Monte Carlo, stress testing), real-time market data, automated trading, strategy backtesting, and batch deep analysis reports. | High |
+| FR-FM-004   | The system SHOULD support an optional **Pro tier** (between Free and Premium) with intermediate feature access. | Low |
+| FR-FM-005   | The system SHALL clearly indicate to users which features are locked behind a paid tier with upgrade prompts. | High |
+| FR-FM-006   | The system SHALL integrate with a **payment processor** (Stripe and/or PayPal) for subscription billing. | High |
+| FR-FM-007   | The system SHALL support **monthly and annual** billing cycles with a discount for annual subscriptions. | Medium |
+| FR-FM-008   | The system SHALL allow users to upgrade, downgrade, or cancel their subscription at any time.         | High     |
+| FR-FM-009   | The system SHALL provide a **free trial period** (configurable, default: 14 days) for Premium features. | Medium |
+| FR-FM-010   | The system SHALL handle subscription expiration gracefully by downgrading the user to the Free tier without data loss. | High |
+| FR-FM-011   | The system SHALL track feature usage per user for analytics and plan optimization.                     | Medium   |
+| FR-FM-012   | The system SHALL support **promotional codes** and discount coupons for subscription plans.            | Low      |
+
+### 4.12 Alerting & Notifications
+
+| ID          | Requirement                                                                                          | Priority |
+|-------------|------------------------------------------------------------------------------------------------------|----------|
+| FR-AN-001   | The system SHALL support alerting users via **email** for critical events and notifications.           | High     |
+| FR-AN-002   | The system SHALL support alerting users via **SMS** for time-sensitive and critical alerts.            | High     |
+| FR-AN-003   | The system SHALL allow users to configure which alert types they receive via email, SMS, or both.     | High     |
+| FR-AN-004   | The system SHALL send alerts for the following events: trade executions, risk limit breaches, portfolio value thresholds (user-defined), strategy signal generation, option expiration warnings, and subscription/billing events. | High |
+| FR-AN-005   | The system SHALL support **price alerts** — users can set alerts when a specific asset reaches a target price. | High |
+| FR-AN-006   | The system SHALL support **portfolio performance alerts** — notify when daily P&L exceeds a user-defined threshold (gain or loss). | Medium |
+| FR-AN-007   | The system SHALL implement an **alert management dashboard** where users can view, create, edit, and delete their alert rules. | Medium |
+| FR-AN-008   | The system SHALL throttle alerts to prevent alert fatigue (configurable maximum alerts per hour per channel). | Medium |
+| FR-AN-009   | The system SHALL maintain an alert history log showing all sent alerts with delivery status.           | Medium   |
+| FR-AN-010   | The system SHALL support **in-app notifications** (push to frontend via WebSocket) in addition to email and SMS. | Medium |
+| FR-AN-011   | Email alerts SHALL be sent via a reliable email service provider (e.g., SendGrid, AWS SES).           | High     |
+| FR-AN-012   | SMS alerts SHALL be sent via a reliable SMS gateway (e.g., Twilio).                                   | High     |
+
+### 4.13 Log Search & Management
+
+| ID          | Requirement                                                                                          | Priority |
+|-------------|------------------------------------------------------------------------------------------------------|----------|
+| FR-LS-001   | The system SHALL provide a **centralized log search** interface accessible to ADMIN users.            | High     |
+| FR-LS-002   | The log search SHALL support full-text search across all application logs from all microservices.     | High     |
+| FR-LS-003   | The log search SHALL support filtering by: service name, log level (DEBUG, INFO, WARN, ERROR), timestamp range, correlation ID, and user ID. | High |
+| FR-LS-004   | The system SHALL aggregate logs from all microservices into a centralized log store (ELK Stack / OpenSearch). | High |
+| FR-LS-005   | The system SHALL support structured log queries using Kibana Query Language (KQL) or equivalent.      | Medium   |
+| FR-LS-006   | The system SHALL provide **log dashboards** with visualizations for error rate trends, request volume, and response time distributions. | Medium |
+| FR-LS-007   | The system SHALL support **log-based alerting** — trigger alerts when error rates exceed thresholds or specific error patterns are detected. | Medium |
+| FR-LS-008   | The system SHALL retain logs for a configurable retention period (default: 90 days).                  | High     |
+| FR-LS-009   | The system SHALL ensure all logs include **correlation IDs** to enable end-to-end request tracing across microservices. | High |
+| FR-LS-010   | The system SHALL ensure that sensitive data (passwords, API keys, PII) is **never logged** in plain text. | High |
+
+### 4.14 Batch Processing & Deep Analysis
+
+| ID          | Requirement                                                                                          | Priority |
+|-------------|------------------------------------------------------------------------------------------------------|----------|
+| FR-BP-001   | The system SHALL include a **Batch Processing Service** built on Spring Batch for scheduled and on-demand data analysis jobs. | High |
+| FR-BP-002   | The batch service SHALL perform **deep data analysis** on portfolio holdings, including multi-factor performance attribution, trend detection, and anomaly identification. | High |
+| FR-BP-003   | The batch service SHALL generate **recommendation reports** based on analysis of portfolio composition, market conditions, and user risk profile. | High |
+| FR-BP-004   | Recommendations SHALL include: asset rebalancing suggestions, underperforming holding alerts, diversification opportunities, and tax-loss harvesting candidates. | High |
+| FR-BP-005   | The batch service SHALL perform **sector and market trend analysis** by processing large volumes of historical and real-time market data. | Medium |
+| FR-BP-006   | The batch service SHALL support **configurable scheduling** — jobs can run daily, weekly, monthly, or on-demand via the Admin Panel. | High |
+| FR-BP-007   | The batch service SHALL implement **job restart and recovery** — failed jobs can be restarted from the last successful checkpoint. | High |
+| FR-BP-008   | The batch service SHALL support **parallel chunk processing** to efficiently process large datasets (millions of market data records). | Medium |
+| FR-BP-009   | The batch service SHALL generate **user-facing analysis reports** delivered via email notification and available in the user dashboard. | Medium |
+| FR-BP-010   | The batch service SHALL compute **correlation and regression analysis** across asset classes for portfolio optimization recommendations. | Medium |
+| FR-BP-011   | The batch service SHALL maintain a **job execution log** with status, duration, records processed, and errors for each run. | High |
+| FR-BP-012   | The batch service SHALL be a **separate microservice** that can scale independently from the real-time API services. | High |
+
 ---
 
 ## 5. Non-Functional Requirements
@@ -388,7 +500,7 @@ The Portfolio Analysis Application is a full-stack web application that provides
 | ID          | Requirement                                                                                          | Priority |
 |-------------|------------------------------------------------------------------------------------------------------|----------|
 | NFR-MT-001  | The backend SHALL follow a layered architecture: Controller → Service → Repository.                    | High     |
-| NFR-MT-002  | The codebase SHALL maintain a minimum of **80% unit test coverage** for business logic.                | High     |
+| NFR-MT-002  | The codebase SHALL maintain a minimum of **90% unit test code coverage** for business logic, measured by JaCoCo or equivalent coverage tool. | High     |
 | NFR-MT-003  | Integration tests SHALL cover all API endpoints and database operations.                               | High     |
 | NFR-MT-004  | The project SHALL use a CI/CD pipeline with automated build, test, lint, and deploy stages.            | High     |
 | NFR-MT-005  | API endpoints SHALL be documented using OpenAPI 3.0 (Swagger) with auto-generated documentation.       | High     |
@@ -415,6 +527,40 @@ The Portfolio Analysis Application is a full-stack web application that provides
 | NFR-OB-003  | The system SHALL support distributed tracing (OpenTelemetry) for end-to-end request tracking.          | Medium   |
 | NFR-OB-004  | The system SHALL generate alerts for: failed trades, market data feed outages, abnormal error rates, and risk limit breaches. | High |
 | NFR-OB-005  | Application logs SHALL be aggregated in a centralized logging system (ELK stack or equivalent).         | Medium   |
+
+### 5.10 Testing & Quality Assurance
+
+| ID          | Requirement                                                                                          | Priority |
+|-------------|------------------------------------------------------------------------------------------------------|----------|
+| NFR-TQ-001  | The codebase SHALL achieve a minimum of **90% code coverage** across all microservices, measured by JaCoCo and enforced in the Maven build via the `jacoco-maven-plugin`. | High |
+| NFR-TQ-002  | Unit tests SHALL be written using **JUnit 5** and **Mockito** for all service, repository, and utility classes. | High |
+| NFR-TQ-003  | Integration tests SHALL be written using **Spring Boot Test** with `@SpringBootTest` and test containers for database and messaging dependencies. | High |
+| NFR-TQ-004  | The project SHALL include a comprehensive **regression test suite** that is executed on every build to ensure that new changes do not break existing functionality. | High |
+| NFR-TQ-005  | The regression test suite SHALL cover all critical business flows: user registration/login, portfolio CRUD, trade execution, risk calculation, and billing/subscription management. | High |
+| NFR-TQ-006  | The project SHALL include **behavioral test cases** (BDD-style) written using Cucumber or equivalent, with **sample data** fixtures for each scenario. | High |
+| NFR-TQ-007  | Sample data for behavioral tests SHALL include: sample user profiles (free and premium tiers), sample portfolios with diverse asset classes, sample market data (historical prices for at least 5 tickers over 2 years), sample trade orders, and sample alert configurations. | High |
+| NFR-TQ-008  | Sample behavioral test data SHALL be maintained in version-controlled fixture files (JSON/CSV) under `src/test/resources/fixtures/`. | High |
+| NFR-TQ-009  | The project SHALL include **API contract tests** to validate request/response schemas for all REST endpoints. | Medium |
+| NFR-TQ-010  | The project SHALL include **performance/load tests** using JMeter or Gatling for critical API endpoints. | Medium |
+| NFR-TQ-011  | All test suites (unit, integration, regression, behavioral) SHALL be executable via Maven: `mvn test` for unit tests, `mvn verify` for integration and behavioral tests. | High |
+| NFR-TQ-012  | The CI/CD pipeline SHALL fail the build if code coverage drops below the 90% threshold.               | High     |
+| NFR-TQ-013  | The project SHALL include **end-to-end (E2E) tests** for critical user journeys using Selenium or Playwright. | Medium |
+| NFR-TQ-014  | Test reports SHALL be generated in HTML and XML formats and published as CI/CD build artifacts.         | Medium   |
+
+### 5.11 Documentation
+
+| ID          | Requirement                                                                                          | Priority |
+|-------------|------------------------------------------------------------------------------------------------------|----------|
+| NFR-DC-001  | All Java classes SHALL include **Javadoc comments** describing the class purpose, author, and version. | High     |
+| NFR-DC-002  | All public methods SHALL include **Javadoc comments** documenting parameters (`@param`), return values (`@return`), exceptions (`@throws`), and a brief description of behavior. | High |
+| NFR-DC-003  | Complex business logic (risk calculations, strategy algorithms, batch processing logic) SHALL include **inline comments** explaining the reasoning and algorithmic approach. | High |
+| NFR-DC-004  | Each microservice SHALL include a `README.md` documenting: service purpose, API endpoints, configuration properties, build instructions, and dependencies. | High |
+| NFR-DC-005  | API documentation SHALL be auto-generated from code annotations using **SpringDoc OpenAPI** (Swagger UI) and kept in sync with the codebase. | High |
+| NFR-DC-006  | Database schema changes SHALL be documented in migration scripts with descriptive comments explaining each change. | Medium |
+| NFR-DC-007  | The Maven `pom.xml` SHALL be configured to generate Javadoc as part of the `site` lifecycle phase.     | Medium   |
+| NFR-DC-008  | Configuration properties SHALL be documented using `@ConfigurationProperties` metadata with descriptions for each property. | Medium |
+| NFR-DC-009  | The project SHALL maintain an **Architecture Decision Record (ADR)** log for significant design decisions. | Medium  |
+| NFR-DC-010  | Code documentation quality SHALL be enforced via Checkstyle rules that flag missing Javadoc on public classes and methods. | High |
 
 ---
 
@@ -476,6 +622,47 @@ The Portfolio Analysis Application is a full-stack web application that provides
         │ account_type      │
         │ is_paper_trading  │
         └──────────────────┘
+
+        ┌──────────────────┐       ┌──────────────────┐
+        │  Subscription     │       │  AlertRule        │
+        ├──────────────────┤       ├──────────────────┤
+        │ id                │       │ id                │
+        │ user_id (FK)      │       │ user_id (FK)      │
+        │ plan (FREE/       │       │ alert_type        │
+        │   PREMIUM/PRO)    │       │ channel (EMAIL/   │
+        │ status (ACTIVE/   │       │   SMS/IN_APP)     │
+        │   CANCELLED/      │       │ condition (JSON)  │
+        │   EXPIRED)        │       │ is_active         │
+        │ billing_cycle     │       │ last_triggered_at │
+        │ start_date        │       │ created_at        │
+        │ end_date          │       └──────────────────┘
+        │ payment_provider  │
+        │ external_sub_id   │       ┌──────────────────┐
+        │ created_at        │       │  BatchJob         │
+        └──────────────────┘       ├──────────────────┤
+                                    │ id                │
+        ┌──────────────────┐       │ job_name          │
+        │  AdminAuditLog    │       │ job_type          │
+        ├──────────────────┤       │ status (PENDING/  │
+        │ id                │       │   RUNNING/DONE/   │
+        │ admin_user_id(FK) │       │   FAILED)         │
+        │ action            │       │ parameters (JSON) │
+        │ target_entity     │       │ started_at        │
+        │ target_id         │       │ completed_at      │
+        │ details (JSON)    │       │ records_processed │
+        │ timestamp         │       │ error_message     │
+        └──────────────────┘       └──────────────────┘
+
+        ┌──────────────────┐
+        │  FeatureToggle    │
+        ├──────────────────┤
+        │ id                │
+        │ feature_key       │
+        │ is_enabled        │
+        │ allowed_tiers     │
+        │ updated_by (FK)   │
+        │ updated_at        │
+        └──────────────────┘
 ```
 
 ---
@@ -493,7 +680,13 @@ The Portfolio Analysis Application is a full-stack web application that provides
 | Real Estate Valuation    | Property value estimates                                   | Zillow API, Redfin, ATTOM Data              |
 | News & Sentiment         | News aggregation and sentiment scoring                     | NewsAPI, Finnhub, StockTwits                |
 | FX Rates                 | Currency conversion rates                                  | Open Exchange Rates, Fixer.io               |
-| Email / Notification     | User notifications and alerts                              | SendGrid, AWS SES, Twilio (SMS)             |
+| Email Notification       | User notifications and alerts via email                    | SendGrid, AWS SES                           |
+| SMS Notification         | User notifications and alerts via SMS                      | Twilio, AWS SNS                             |
+| Google OAuth 2.0         | Social login via Google identity provider                  | Google Identity Services API                |
+| Meta (Facebook) Login    | Social login via Meta identity provider                    | Facebook Login SDK / Graph API              |
+| Payment Processing       | Subscription billing and payment management                | Stripe, PayPal                              |
+| Log Aggregation          | Centralized log collection, indexing, and search           | Elasticsearch, Logstash, Kibana, OpenSearch |
+| Service Discovery        | Microservice registration and discovery                    | Eureka, Consul, Kubernetes DNS              |
 
 ---
 
@@ -520,6 +713,17 @@ The Portfolio Analysis Application is a full-stack web application that provides
 | **Treynor Ratio**        | Risk-adjusted return metric using beta: (Portfolio Return − Risk-Free Rate) / Beta.                 |
 | **Value at Risk (VaR)**  | Maximum expected loss at a given confidence level over a specified time horizon.                     |
 | **Volatility**           | Statistical measure of the dispersion of returns, typically annualized standard deviation.           |
+| **API Gateway**          | Entry point for client requests in a microservices architecture that handles routing, authentication, and rate limiting. |
+| **BDD**                  | Behavior-Driven Development — a testing methodology where tests are written in a human-readable format describing system behavior. |
+| **Circuit Breaker**      | A design pattern that prevents cascading failures in distributed systems by stopping calls to a failing service. |
+| **ELK Stack**            | Elasticsearch, Logstash, and Kibana — a popular stack for centralized log aggregation, search, and visualization. |
+| **Feature Toggle**       | A technique to enable or disable features at runtime without deploying new code.                     |
+| **Freemium**             | A business model offering basic features for free while charging for premium features.               |
+| **JaCoCo**               | Java Code Coverage — a code coverage library for Java used to measure test coverage.                 |
+| **Microservice**         | An architectural style where an application is composed of small, independently deployable services. |
+| **Regression Test**      | A test suite that verifies previously working functionality still works after code changes.          |
+| **Service Discovery**    | The mechanism by which microservices locate and communicate with each other in a distributed system. |
+| **Spring Batch**         | A framework for building robust batch processing applications in Java/Spring.                        |
 
 ---
 
