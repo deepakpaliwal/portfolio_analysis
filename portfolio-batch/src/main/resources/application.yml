@@ -1,0 +1,165 @@
+##########################################################
+# Portfolio Batch - Common Configuration
+##########################################################
+spring:
+  application:
+    name: portfolio-batch
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  jpa:
+    open-in-view: false
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false
+
+server:
+  port: ${SERVER_PORT:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+# Spark defaults
+spark:
+  master: ${SPARK_MASTER:local[*]}
+  app-name: portfolio-batch
+  driver-memory: ${SPARK_DRIVER_MEMORY:2g}
+  executor-memory: ${SPARK_EXECUTOR_MEMORY:2g}
+
+# Batch schedule
+batch:
+  schedule:
+    portfolio-analysis: ${BATCH_SCHEDULE_ANALYSIS:0 0 2 * * *}
+
+---
+##########################################################
+# LOCAL Profile - H2 + local Spark
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:h2:file:./data/portfolio;MODE=PostgreSQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+spark:
+  master: local[*]
+  driver-memory: 1g
+  executor-memory: 1g
+
+logging:
+  level:
+    com.portfolio: DEBUG
+
+---
+##########################################################
+# DEV Profile - PostgreSQL + Spark standalone (Raspberry Pi)
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:portfolio_dev}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:portfolio}
+    password: ${DB_PASSWORD:portfolio}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+
+spark:
+  master: ${SPARK_MASTER:spark://rpi-master:7077}
+  driver-memory: 512m
+  executor-memory: 512m
+
+logging:
+  level:
+    com.portfolio: DEBUG
+
+---
+##########################################################
+# CAT Profile - PostgreSQL + Spark cluster
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: cat
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:portfolio_cat}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:portfolio}
+    password: ${DB_PASSWORD:portfolio}
+    hikari:
+      maximum-pool-size: 10
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+
+spark:
+  master: ${SPARK_MASTER:spark://spark-master:7077}
+
+logging:
+  level:
+    com.portfolio: INFO
+
+---
+##########################################################
+# PROD Profile - PostgreSQL + Spark on EMR/standalone (AWS)
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME:portfolio_prod}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+
+spark:
+  master: ${SPARK_MASTER:yarn}
+  driver-memory: ${SPARK_DRIVER_MEMORY:4g}
+  executor-memory: ${SPARK_EXECUTOR_MEMORY:4g}
+
+logging:
+  level:
+    com.portfolio: WARN

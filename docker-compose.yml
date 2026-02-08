@@ -1,0 +1,91 @@
+# ============================================================
+# Portfolio Analysis - Docker Compose
+# Usage:
+#   Local (H2):      docker compose up
+#   Dev (Postgres):  docker compose --profile dev up
+#   Prod (Postgres): docker compose --profile prod up
+# ============================================================
+services:
+
+  # ── PostgreSQL (non-local profiles) ──────────────────────
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["dev", "cat", "prod"]
+    environment:
+      POSTGRES_DB: ${DB_NAME:-portfolio_dev}
+      POSTGRES_USER: ${DB_USERNAME:-portfolio}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-portfolio}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-portfolio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Portfolio API ────────────────────────────────────────
+  portfolio-api:
+    build:
+      context: .
+      dockerfile: portfolio-api/Dockerfile
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-local}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-portfolio_dev}
+      DB_USERNAME: ${DB_USERNAME:-portfolio}
+      DB_PASSWORD: ${DB_PASSWORD:-portfolio}
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production-must-be-at-least-256-bits}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+  # ── Portfolio UI ─────────────────────────────────────────
+  portfolio-ui:
+    build:
+      context: portfolio-ui
+      dockerfile: Dockerfile
+    ports:
+      - "${UI_PORT:-80}:80"
+    depends_on:
+      portfolio-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Portfolio Batch ──────────────────────────────────────
+  portfolio-batch:
+    build:
+      context: .
+      dockerfile: portfolio-batch/Dockerfile
+    ports:
+      - "${BATCH_PORT:-8082}:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-local}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-portfolio_dev}
+      DB_USERNAME: ${DB_USERNAME:-portfolio}
+      DB_PASSWORD: ${DB_PASSWORD:-portfolio}
+      SPARK_MASTER: ${SPARK_MASTER:-local[*]}
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

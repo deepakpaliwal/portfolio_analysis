@@ -1,0 +1,184 @@
+##########################################################
+# Portfolio API - Common Configuration
+##########################################################
+spring:
+  application:
+    name: portfolio-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # JPA defaults (overridden per profile)
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Liquibase
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+
+  # Jackson
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+# Server
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# OpenAPI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+# Application
+app:
+  jwt:
+    secret: ${JWT_SECRET:default-dev-secret-change-in-production-must-be-at-least-256-bits-long}
+    expiration-ms: 3600000
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+---
+##########################################################
+# LOCAL Profile - H2 Database (IntelliJ development)
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:h2:file:./data/portfolio;MODE=PostgreSQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+logging:
+  level:
+    com.portfolio: DEBUG
+    org.springframework.security: DEBUG
+
+---
+##########################################################
+# DEV Profile - PostgreSQL (Raspberry Pi cluster)
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:portfolio_dev}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:portfolio}
+    password: ${DB_PASSWORD:portfolio}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+
+logging:
+  level:
+    com.portfolio: DEBUG
+    org.springframework.security: INFO
+
+---
+##########################################################
+# CAT Profile - PostgreSQL (Pre-production / UAT)
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: cat
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:portfolio_cat}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:portfolio}
+    password: ${DB_PASSWORD:portfolio}
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+
+logging:
+  level:
+    com.portfolio: INFO
+
+---
+##########################################################
+# PROD Profile - PostgreSQL (AWS deployment)
+##########################################################
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME:portfolio_prod}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+      connection-timeout: 20000
+      max-lifetime: 1800000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+
+logging:
+  level:
+    com.portfolio: WARN
+    org.springframework: WARN
+
+management:
+  endpoint:
+    health:
+      show-details: never
