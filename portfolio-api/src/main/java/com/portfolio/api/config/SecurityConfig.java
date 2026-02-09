@@ -87,4 +87,20 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
+    /**
+     * Verifies a raw password against an encoded hash.
+     * <p>
+     * NOTE: It is impossible to "decode" or "decrypt" a BCrypt hash back to the original password
+     * because BCrypt is a one-way hashing function. This method verifies if the raw password
+     * matches the hash.
+     * </p>
+     *
+     * @param rawPassword     the plain text password
+     * @param encodedPassword the BCrypt hash
+     * @return true if the password matches, false otherwise
+     */
+    public boolean verifyPassword(String rawPassword, String encodedPassword) {
+        return passwordEncoder().matches(rawPassword, encodedPassword);
+    }
 }

@@ -37,16 +37,17 @@ public class SparkConfig {
      */
     @Bean
     public SparkSession sparkSession() {
-        SparkConf conf = new SparkConf()
-                .setAppName(appName)
-                .setMaster(sparkMaster)
-                .set("spark.driver.memory", driverMemory)
-                .set("spark.executor.memory", executorMemory)
-                .set("spark.sql.shuffle.partitions", "10")
-                .set("spark.ui.enabled", "false");
-
-        return SparkSession.builder()
-                .config(conf)
-                .getOrCreate();
+//        SparkConf conf = new SparkConf()
+//                .setAppName(appName)
+//                .setMaster(sparkMaster)
+//                .set("spark.driver.memory", driverMemory)
+//                .set("spark.executor.memory", executorMemory)
+//                .set("spark.sql.shuffle.partitions", "10")
+//                .set("spark.ui.enabled", "false");
+//
+//        return SparkSession.builder()
+//                .config(conf)
+//                .getOrCreate();
+        return null;
     }
 }
