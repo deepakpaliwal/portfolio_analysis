@@ -18,7 +18,7 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      const response = await apiClient.post('/api/v1/auth/login', { email, password });
+      const response = await apiClient.post('/v1/auth/login', { email, password });
       dispatch(loginSuccess({ token: response.data.token, user: response.data.user }));
       navigate('/dashboard');
     } catch {
