@@ -1,5 +1,7 @@
 package com.portfolio.api.controller;
 
+import com.portfolio.api.dto.AllocationResponse;
+import com.portfolio.api.dto.HoldingResponse;
 import com.portfolio.api.dto.PortfolioRequest;
 import com.portfolio.api.dto.PortfolioResponse;
 import com.portfolio.api.model.User;
@@ -9,11 +11,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller for portfolio CRUD operations.
@@ -74,5 +80,24 @@ public class PortfolioController {
     public ResponseEntity<Void> deletePortfolio(@PathVariable Long id) {
         portfolioService.deletePortfolio(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/allocation")
+    @Operation(summary = "Get portfolio allocation breakdown by asset type, sector, and currency")
+    public ResponseEntity<AllocationResponse> getAllocation(@PathVariable Long id) {
+        return ResponseEntity.ok(portfolioService.getAllocation(id));
+    }
+
+    @PostMapping(value = "/{id}/holdings/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import holdings from a CSV file")
+    public ResponseEntity<?> importHoldings(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "CSV file is empty"));
+        }
+        List<HoldingResponse> imported = portfolioService.importHoldingsFromCsv(id, file.getInputStream());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("imported", imported.size(), "holdings", imported));
     }
 }

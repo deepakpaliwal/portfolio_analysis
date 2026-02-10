@@ -96,3 +96,61 @@ Invalid:  400 { "error": "Validation Failed", "fieldErrors": { ... } }
 4. `POST /api/v1/portfolios` creates the portfolio → added to Redux store → auto-selected
 5. Selected portfolio shows details header + holdings table
 6. Delete button calls `DELETE /api/v1/portfolios/{id}` with confirmation
+
+---
+
+## Session 4 — 2026-02-10
+
+### What was done
+Implemented all High + Medium requirements from **4.2 Portfolio Management**:
+- **FR-PM-002**: Add/update/remove holdings (HoldingController + HoldingService)
+- **FR-PM-003**: All asset classes supported (AssetType enum already had them)
+- **FR-PM-004**: Holdings record all required fields (entity already had them)
+- **FR-PM-007**: Custom category tagging (category field on Holding)
+- **FR-PM-009**: CSV import for holdings
+- **FR-PM-010**: Transaction history (TransactionController + TransactionService)
+- **FR-PM-012**: Allocation breakdown by asset type, sector, currency
+
+### New backend files created
+| File | Purpose |
+|---|---|
+| `service/HoldingService.java` | CRUD for holdings within a portfolio |
+| `controller/HoldingController.java` | REST endpoints: `POST/GET/PUT/DELETE /api/v1/portfolios/{id}/holdings` |
+| `dto/TransactionRequest.java` | Transaction creation DTO with validation |
+| `dto/TransactionResponse.java` | Transaction response DTO (includes holding ticker) |
+| `service/TransactionService.java` | Record + query transactions by holding or portfolio |
+| `controller/TransactionController.java` | REST endpoints for transactions |
+| `dto/AllocationResponse.java` | Allocation breakdown response DTO |
+
+### Modified backend files
+| File | Changes |
+|---|---|
+| `service/PortfolioService.java` | Added `getAllocation()` and `importHoldingsFromCsv()` methods |
+| `controller/PortfolioController.java` | Added `GET /{id}/allocation` and `POST /{id}/holdings/import` endpoints |
+
+### Frontend changes
+| File | Changes |
+|---|---|
+| `pages/Portfolio.tsx` | Full rewrite with 3 tabs (Holdings, Transactions, Allocation), add/edit/delete holding form, CSV import button, allocation bar charts |
+
+### API endpoints added
+```
+Holdings:
+  POST   /api/v1/portfolios/{id}/holdings          — Add holding
+  GET    /api/v1/portfolios/{id}/holdings           — List holdings
+  PUT    /api/v1/portfolios/{id}/holdings/{hid}     — Update holding
+  DELETE /api/v1/portfolios/{id}/holdings/{hid}     — Delete holding
+  POST   /api/v1/portfolios/{id}/holdings/import    — CSV import (multipart)
+
+Transactions:
+  POST   /api/v1/holdings/{hid}/transactions        — Record transaction
+  GET    /api/v1/holdings/{hid}/transactions         — By holding
+  GET    /api/v1/portfolios/{id}/transactions        — By portfolio
+
+Allocation:
+  GET    /api/v1/portfolios/{id}/allocation          — Breakdown by type/sector/currency
+```
+
+### CSV import format
+Required columns: `asset_type`, `ticker`, `quantity`, `purchase_price`, `purchase_date`
+Optional columns: `name`, `currency`, `sector`, `category`
