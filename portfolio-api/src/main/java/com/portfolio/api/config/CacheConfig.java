@@ -17,7 +17,17 @@ public class CacheConfig {
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 new ConcurrentMapCache("quotes"),
-                new ConcurrentMapCache("fxRates")
+                new ConcurrentMapCache("fxRates"),
+                new ConcurrentMapCache("companyProfiles"),
+                new ConcurrentMapCache("basicFinancials"),
+                new ConcurrentMapCache("financialStatements"),
+                new ConcurrentMapCache("secFilings"),
+                new ConcurrentMapCache("recommendations"),
+                new ConcurrentMapCache("priceTargets"),
+                new ConcurrentMapCache("earnings"),
+                new ConcurrentMapCache("peers"),
+                new ConcurrentMapCache("stockSymbols"),
+                new ConcurrentMapCache("technicalIndicators")
         ));
         return cacheManager;
     }

@@ -200,3 +200,63 @@ Valuation:
 - **FX conversion**: Holdings in non-base currencies are converted using Finnhub forex rates at the portfolio's base currency
 - **Graceful degradation**: If Finnhub returns no price, cost basis is used as market value with zero gain/loss
 - **Profile-based config**: API keys separated into profile YAML files, not in main `application.yml`
+
+---
+
+## Session 6 — 2026-02-10
+
+### What was done
+- Fixed **403 auth error** — Spring Security was using `Http403ForbiddenEntryPoint` as default. Added `HttpStatusEntryPoint(UNAUTHORIZED)` to return 401. Updated frontend client to handle both 401 and 403.
+- Implemented **full section 4.4 Stock & Sector Screener** (FR-SC-001 through FR-SC-010)
+
+### New backend files created
+| File | Purpose |
+|---|---|
+| `model/ScreenerReport.java` | JPA Entity mapping to `screener_reports` table |
+| `repository/ScreenerReportRepository.java` | Repository for saved screener reports |
+| `dto/TickerReportResponse.java` | Comprehensive ticker report DTO (profile, metrics, financials, filings, analysts) |
+| `dto/SectorReportResponse.java` | Sector performance report DTO (top/bottom performers, rotation signals) |
+| `dto/ScreenCriteriaRequest.java` | Custom screening criteria request DTO |
+| `dto/ScreenResultResponse.java` | Custom screen results DTO |
+| `dto/TechnicalIndicatorResponse.java` | Technical indicator time-series DTO |
+| `service/ScreenerService.java` | Core screener orchestration (ticker reports, sector reports, custom screens, saved reports) |
+| `controller/ScreenerController.java` | REST endpoints for all screener features |
+
+### Modified backend files
+| File | Changes |
+|---|---|
+| `service/MarketDataService.java` | Added 10 new Finnhub endpoints: profile, metrics, financials, filings, recommendations, price targets, earnings, peers, stock symbols, technical indicators |
+| `config/CacheConfig.java` | Added 10 new cache names for screener data |
+| `config/SecurityConfig.java` | Added `HttpStatusEntryPoint(UNAUTHORIZED)` |
+
+### Frontend changes
+| File | Changes |
+|---|---|
+| `pages/Screener.tsx` | Full rewrite: 4 tabs (Ticker, Sector, Custom Screen, Saved Reports) with complete Finnhub integration |
+| `api/client.ts` | Handle both 401 and 403 in response interceptor |
+
+### API endpoints added
+```
+Screener:
+  GET    /api/v1/screener/ticker/{symbol}       — Comprehensive ticker report
+  GET    /api/v1/screener/sectors               — List available sectors
+  GET    /api/v1/screener/sector/{sector}       — Sector performance report
+  POST   /api/v1/screener/screen                — Run custom stock screen
+  GET    /api/v1/screener/indicators/{symbol}   — Technical indicator data
+  GET    /api/v1/screener/reports               — List saved reports
+  POST   /api/v1/screener/reports               — Save a report
+  GET    /api/v1/screener/reports/{id}          — Get saved report data
+  DELETE /api/v1/screener/reports/{id}          — Delete saved report
+```
+
+### Requirements covered
+- **FR-SC-001**: Ticker Screener with comprehensive reports
+- **FR-SC-002**: Current price, 52-week range, market cap, P/E, EPS, dividend yield, revenue/earnings trends
+- **FR-SC-003**: Financial statements (annual + quarterly) from Finnhub financials-reported API
+- **FR-SC-004**: SEC filings (10-K, 10-Q, 8-K, proxy) from Finnhub filings API
+- **FR-SC-005**: Analyst recommendations (buy/hold/sell), price targets, earnings estimates
+- **FR-SC-006**: Sector Screener with 11 sectors (10 representative tickers each)
+- **FR-SC-007**: Sector vs S&P 500, top/bottom performers, avg P/E, rotation signals
+- **FR-SC-008**: Custom screening criteria (P/E, dividend yield, market cap, beta, price)
+- **FR-SC-009**: Technical indicators via Finnhub indicator API (SMA, EMA, RSI, MACD, Bollinger)
+- **FR-SC-010**: Save/revisit past screens (persisted in screener_reports table)
