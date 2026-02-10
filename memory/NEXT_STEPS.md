@@ -31,12 +31,12 @@ These are observed opportunities — not commitments. Future sessions should con
 - [x] Implement remaining CRUD for holdings, transactions, trade orders
 - [x] Add market data fetching from Finnhub API (Session 5)
 - [ ] Implement strategy backtesting endpoints
-- [ ] Add screener endpoint with filtering logic
+- [x] Add screener endpoint with filtering logic (Session 6 — full section 4.4)
 - [ ] WebSocket implementation for real-time price updates
 
 ### UI Enhancements
 - [ ] Build out Dashboard page with real portfolio metrics and charts
-- [ ] Implement Screener page filtering and results
+- [x] Implement Screener page filtering and results (Session 6)
 - [ ] Build Risk analytics page (VaR calculation display, Monte Carlo charts)
 - [ ] Build Trading page (order entry form, order book)
 - [ ] Admin panel — user management, feature toggle controls
