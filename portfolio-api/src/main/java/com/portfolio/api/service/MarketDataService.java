@@ -256,4 +256,24 @@ public class MarketDataService {
             return null;
         }
     }
+
+    // ───────── Stock Candles / Historical Prices (FR-RA) ─────────
+
+    @Cacheable(value = "stockCandles", key = "#ticker + '-' + #resolution + '-' + #from + '-' + #to")
+    public Map<String, Object> getStockCandles(String ticker, String resolution, long from, long to) {
+        try {
+            String url = String.format("%s/stock/candle?symbol=%s&resolution=%s&from=%d&to=%d&token=%s",
+                    finnhubConfig.getBaseUrl(), ticker, resolution, from, to, finnhubConfig.getApiKey());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response != null && "ok".equals(response.get("s"))) {
+                return response;
+            }
+            log.warn("No candle data for {}: status={}", ticker, response != null ? response.get("s") : "null");
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to fetch candles for {}: {}", ticker, e.getMessage());
+            return null;
+        }
+    }
 }

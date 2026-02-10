@@ -13,6 +13,10 @@
 - [x] FR-PM-005 — Real-time market value via Finnhub API (Session 5)
 - [x] FR-PM-006 — Unrealized gain/loss display (Session 5)
 - [x] FR-PM-008 — Multi-currency FX conversion via Finnhub forex rates (Session 5)
+- [x] FR-SC-001 through FR-SC-010 — Stock & Sector Screener (Session 6)
+- [x] FR-RA-001 through FR-RA-009 — Risk Analytics (Session 7)
+- [x] FR-RA-011 — Risk dashboard (Session 7)
+- [x] FR-RA-012 — On-demand recalculation (Session 7)
 - [ ] FR-UM-002 — OAuth 2.0 login via Google
 - [ ] FR-UM-002a — OAuth 2.0 login via Meta
 - [ ] FR-UM-003 — Email verification before full access
@@ -37,7 +41,7 @@ These are observed opportunities — not commitments. Future sessions should con
 ### UI Enhancements
 - [ ] Build out Dashboard page with real portfolio metrics and charts
 - [x] Implement Screener page filtering and results (Session 6)
-- [ ] Build Risk analytics page (VaR calculation display, Monte Carlo charts)
+- [x] Build Risk analytics page (VaR, CVaR, beta, alpha, ratios, drawdown, stress tests, Monte Carlo) (Session 7)
 - [ ] Build Trading page (order entry form, order book)
 - [ ] Admin panel — user management, feature toggle controls
 

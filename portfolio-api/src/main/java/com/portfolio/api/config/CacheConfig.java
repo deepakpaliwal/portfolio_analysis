@@ -27,7 +27,8 @@ public class CacheConfig {
                 new ConcurrentMapCache("earnings"),
                 new ConcurrentMapCache("peers"),
                 new ConcurrentMapCache("stockSymbols"),
-                new ConcurrentMapCache("technicalIndicators")
+                new ConcurrentMapCache("technicalIndicators"),
+                new ConcurrentMapCache("stockCandles")
         ));
         return cacheManager;
     }
