@@ -9,6 +9,7 @@ import RiskAnalytics from "./pages/RiskAnalytics";
 import Trading from "./pages/Trading";
 import AdminPanel from "./pages/AdminPanel";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
 /**
@@ -46,8 +47,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 const App: React.FC = () => {
   return (
     <Routes>
-      {/* Public route */}
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {/* Protected routes wrapped in the sidebar layout */}
       <Route

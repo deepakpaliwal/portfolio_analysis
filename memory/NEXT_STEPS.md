@@ -1,6 +1,14 @@
 # Next Steps & Planned Work
 
-## Potential areas of work (not yet started)
+## Requirements Implementation Progress (from REQUIREMENTS.md)
+- [x] FR-UM-001 — Self-registration with email/password (Session 2)
+- [ ] FR-UM-002 — OAuth 2.0 login via Google
+- [ ] FR-UM-002a — OAuth 2.0 login via Meta
+- [ ] FR-UM-003 — Email verification before full access
+- [ ] FR-UM-007 — Password complexity (enforced in RegisterRequest DTO)
+- [ ] FR-UM-008 — Multi-factor authentication (TOTP)
+
+## Potential areas of work
 These are observed opportunities — not commitments. Future sessions should confirm with the user before starting any of these.
 
 ### Testing
