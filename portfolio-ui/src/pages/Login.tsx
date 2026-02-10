@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '../store/store';
 import { loginSuccess } from '../store/slices/authSlice';
 import apiClient from '../api/client';
@@ -48,6 +48,10 @@ const Login: React.FC = () => {
             style={{ width: '100%', padding: '0.75rem', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
+          <p style={{ textAlign: 'center', marginTop: '1rem', color: '#666' }}>
+            Don&apos;t have an account?{' '}
+            <Link to="/register" style={{ color: '#1a1a2e', fontWeight: 600 }}>Sign up</Link>
+          </p>
         </form>
       </div>
     </div>

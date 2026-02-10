@@ -16,7 +16,7 @@
 
 ### UI
 - Entry: `portfolio-ui/src/main.tsx`
-- Pages: `portfolio-ui/src/pages/` (Dashboard, Portfolio, Screener, Risk, Trading, Admin, Login)
+- Pages: `portfolio-ui/src/pages/` (Dashboard, Portfolio, Screener, Risk, Trading, Admin, Login, Register)
 - Store: `portfolio-ui/src/store/` (Redux slices for auth + portfolio)
 - API client: `portfolio-ui/src/services/api.ts`
 - Routes: `portfolio-ui/src/App.tsx`
