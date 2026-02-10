@@ -2,6 +2,7 @@
 
 ## Requirements Implementation Progress (from REQUIREMENTS.md)
 - [x] FR-UM-001 — Self-registration with email/password (Session 2)
+- [x] FR-PM-001 — Create one or more named portfolios (Session 3)
 - [ ] FR-UM-002 — OAuth 2.0 login via Google
 - [ ] FR-UM-002a — OAuth 2.0 login via Meta
 - [ ] FR-UM-003 — Email verification before full access

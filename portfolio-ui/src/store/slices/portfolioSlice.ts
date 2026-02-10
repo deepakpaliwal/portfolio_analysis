@@ -43,7 +43,16 @@ const portfolioSlice = createSlice({
       state.loading = false;
       state.error = null;
     },
-    selectPortfolio(state, action: PayloadAction<number>) {
+    addPortfolio(state, action: PayloadAction<Portfolio>) {
+      state.portfolios.push(action.payload);
+    },
+    removePortfolio(state, action: PayloadAction<number>) {
+      state.portfolios = state.portfolios.filter(p => p.id !== action.payload);
+      if (state.selectedPortfolioId === action.payload) {
+        state.selectedPortfolioId = null;
+      }
+    },
+    selectPortfolio(state, action: PayloadAction<number | null>) {
       state.selectedPortfolioId = action.payload;
     },
     setLoading(state, action: PayloadAction<boolean>) {
@@ -56,5 +65,6 @@ const portfolioSlice = createSlice({
   },
 });
 
-export const { setPortfolios, selectPortfolio, setLoading, setError } = portfolioSlice.actions;
+export const { setPortfolios, addPortfolio, removePortfolio, selectPortfolio, setLoading, setError } = portfolioSlice.actions;
+export type { Portfolio };
 export default portfolioSlice.reducer;

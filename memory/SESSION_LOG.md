@@ -65,3 +65,34 @@ Invalid:  400 { "error": "Validation Failed", "fieldErrors": { ... } }
 ### Next requirement to implement
 - FR-UM-002: OAuth 2.0 login via Google
 - FR-UM-003: Email verification before full access
+
+---
+
+## Session 3 — 2026-02-10
+
+### What was done
+- Implemented **FR-PM-001**: Users can create one or more named portfolios
+
+### Changes made
+
+#### Backend (`portfolio-api`)
+| File | Action | Details |
+|---|---|---|
+| `controller/PortfolioController.java` | **Modified** | Replaced `X-User-Id` header with JWT `Authentication` principal; added `UserRepository` to resolve email to user ID |
+
+#### Frontend (`portfolio-ui`)
+| File | Action | Details |
+|---|---|---|
+| `store/slices/portfolioSlice.ts` | **Modified** | Added `addPortfolio`, `removePortfolio` reducers; changed `selectPortfolio` to accept `null`; exported `Portfolio` type |
+| `pages/Portfolio.tsx` | **Rewritten** | Full API integration: fetches portfolios on mount, create form (name, description, currency), portfolio selector dropdown, delete with confirm, holdings table for selected portfolio |
+
+### Key fixes
+- **PortfolioController auth**: Was using `@RequestHeader("X-User-Id")` which required the frontend to know and send the user's DB id. Changed to use Spring Security `Authentication` object so user identity comes from JWT token automatically.
+
+### How it works (end-to-end)
+1. User navigates to `/portfolio` (protected route)
+2. `GET /api/v1/portfolios` fetches all portfolios for the JWT-authenticated user
+3. User clicks "+ New Portfolio" → inline form appears (name required, description optional, currency selector)
+4. `POST /api/v1/portfolios` creates the portfolio → added to Redux store → auto-selected
+5. Selected portfolio shows details header + holdings table
+6. Delete button calls `DELETE /api/v1/portfolios/{id}` with confirmation
