@@ -154,3 +154,49 @@ Allocation:
 ### CSV import format
 Required columns: `asset_type`, `ticker`, `quantity`, `purchase_price`, `purchase_date`
 Optional columns: `name`, `currency`, `sector`, `category`
+
+---
+
+## Session 5 — 2026-02-10
+
+### What was done
+Implemented **FR-PM-005** (real-time market value), **FR-PM-006** (unrealized gain/loss), and **FR-PM-008** (multi-currency FX conversion) using Finnhub API.
+
+### New backend files created
+| File | Purpose |
+|---|---|
+| `config/FinnhubConfig.java` | `@ConfigurationProperties` for Finnhub API key + base URL; defines `RestTemplate` bean |
+| `config/CacheConfig.java` | `SimpleCacheManager` with `quotes` and `fxRates` caches; 60s scheduled eviction |
+| `service/MarketDataService.java` | `getCurrentPrice(ticker)` via Finnhub `/quote`; `getExchangeRate(from, to)` via Finnhub `/forex/rates`; both `@Cacheable` |
+| `service/ValuationService.java` | Combines holdings + live prices + FX rates; computes cost basis, market value, gain/loss per holding and totals |
+| `dto/ValuationResponse.java` | Response DTO with nested `HoldingValuation` (current price, FX rate, cost basis, market value, gain/loss, return %) |
+
+### New configuration files created
+| File | Details |
+|---|---|
+| `application-local.yml` | Finnhub key hardcoded for local development |
+| `application-dev.yml` | Finnhub key hardcoded for dev environment |
+| `application-cat.yml` | Finnhub key with env var fallback |
+| `application-prod.yml` | Finnhub key from env var only (`${FINNHUB_API_KEY}`) |
+
+### Modified backend files
+| File | Changes |
+|---|---|
+| `controller/PortfolioController.java` | Injected `ValuationService`; added `GET /{id}/valuation` endpoint |
+
+### Frontend changes
+| File | Changes |
+|---|---|
+| `pages/Portfolio.tsx` | Added 4th "Valuation" tab with: summary cards (cost basis, market value, gain/loss, return %), detailed table per holding (purchase price, current price, FX rate, cost basis, market value, gain/loss, return %), loading state |
+
+### API endpoint added
+```
+Valuation:
+  GET /api/v1/portfolios/{id}/valuation — Live portfolio valuation with market prices + FX
+```
+
+### Architecture decisions
+- **Caching**: `@Cacheable` on `MarketDataService` methods with scheduled 60s eviction prevents excessive Finnhub API calls
+- **FX conversion**: Holdings in non-base currencies are converted using Finnhub forex rates at the portfolio's base currency
+- **Graceful degradation**: If Finnhub returns no price, cost basis is used as market value with zero gain/loss
+- **Profile-based config**: API keys separated into profile YAML files, not in main `application.yml`

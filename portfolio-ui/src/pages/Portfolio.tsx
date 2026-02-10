@@ -10,7 +10,7 @@ import {
 } from '../store/slices/portfolioSlice';
 import apiClient from '../api/client';
 
-type Tab = 'holdings' | 'transactions' | 'allocation';
+type Tab = 'holdings' | 'transactions' | 'allocation' | 'valuation';
 
 interface HoldingData {
   id: number;
@@ -50,6 +50,32 @@ interface AllocationData {
   totalCostBasis: number;
 }
 
+interface HoldingValuation {
+  id: number;
+  ticker: string;
+  name: string;
+  assetType: string;
+  quantity: number;
+  purchasePrice: number;
+  holdingCurrency: string;
+  currentPrice: number | null;
+  fxRate: number;
+  costBasis: number;
+  marketValue: number;
+  gainLoss: number;
+  gainLossPercent: number;
+}
+
+interface ValuationData {
+  portfolioId: number;
+  baseCurrency: string;
+  totalCostBasis: number;
+  totalMarketValue: number;
+  totalGainLoss: number;
+  totalGainLossPercent: number;
+  holdings: HoldingValuation[];
+}
+
 const ASSET_TYPES = ['STOCK', 'BOND', 'OPTION', 'CASH', 'REAL_ESTATE', 'RETIREMENT_FUND', 'CRYPTOCURRENCY', 'REIT', 'ETF', 'MUTUAL_FUND'];
 
 const Portfolio: React.FC = () => {
@@ -85,6 +111,10 @@ const Portfolio: React.FC = () => {
   // Allocation
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
 
+  // Valuation (live market data)
+  const [valuation, setValuation] = useState<ValuationData | null>(null);
+  const [valuationLoading, setValuationLoading] = useState(false);
+
   // CSV import
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMsg, setImportMsg] = useState('');
@@ -99,10 +129,12 @@ const Portfolio: React.FC = () => {
       setActiveTab('holdings');
       setAllocation(null);
       setTransactions([]);
+      setValuation(null);
     } else {
       setHoldings([]);
       setTransactions([]);
       setAllocation(null);
+      setValuation(null);
     }
   }, [selectedPortfolioId]);
 
@@ -110,6 +142,7 @@ const Portfolio: React.FC = () => {
     if (!selectedPortfolioId) return;
     if (activeTab === 'transactions') fetchTransactions(selectedPortfolioId);
     if (activeTab === 'allocation') fetchAllocation(selectedPortfolioId);
+    if (activeTab === 'valuation') fetchValuation(selectedPortfolioId);
   }, [activeTab, selectedPortfolioId]);
 
   const fetchPortfolios = async () => {
@@ -139,6 +172,15 @@ const Portfolio: React.FC = () => {
       const res = await apiClient.get(`/v1/portfolios/${pid}/allocation`);
       setAllocation(res.data);
     } catch { setAllocation(null); }
+  };
+
+  const fetchValuation = async (pid: number) => {
+    setValuationLoading(true);
+    try {
+      const res = await apiClient.get(`/v1/portfolios/${pid}/valuation`);
+      setValuation(res.data);
+    } catch { setValuation(null); }
+    setValuationLoading(false);
   };
 
   // Portfolio CRUD
@@ -321,6 +363,7 @@ const Portfolio: React.FC = () => {
             <button style={tabStyle(activeTab === 'holdings')} onClick={() => setActiveTab('holdings')}>Holdings</button>
             <button style={tabStyle(activeTab === 'transactions')} onClick={() => setActiveTab('transactions')}>Transactions</button>
             <button style={tabStyle(activeTab === 'allocation')} onClick={() => setActiveTab('allocation')}>Allocation</button>
+            <button style={tabStyle(activeTab === 'valuation')} onClick={() => setActiveTab('valuation')}>Valuation</button>
           </div>
 
           {/* Holdings Tab */}
@@ -496,6 +539,106 @@ const Portfolio: React.FC = () => {
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>Loading allocation data...</div>
+              )}
+            </div>
+          )}
+
+          {/* Valuation Tab */}
+          {activeTab === 'valuation' && (
+            <div style={{ padding: '1rem' }}>
+              {valuationLoading ? (
+                <div style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>Fetching live market data...</div>
+              ) : valuation ? (
+                <div>
+                  {/* Summary cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f9f9f9', borderRadius: 6, padding: '1rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: 4 }}>Total Cost Basis</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                        {valuation.baseCurrency} {Number(valuation.totalCostBasis).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div style={{ background: '#f9f9f9', borderRadius: 6, padding: '1rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: 4 }}>Total Market Value</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                        {valuation.baseCurrency} {Number(valuation.totalMarketValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div style={{ background: valuation.totalGainLoss >= 0 ? '#e8f5e9' : '#ffebee', borderRadius: 6, padding: '1rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: 4 }}>Unrealized Gain/Loss</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: valuation.totalGainLoss >= 0 ? '#2e7d32' : '#c62828' }}>
+                        {valuation.totalGainLoss >= 0 ? '+' : ''}{valuation.baseCurrency} {Number(valuation.totalGainLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div style={{ background: valuation.totalGainLossPercent >= 0 ? '#e8f5e9' : '#ffebee', borderRadius: 6, padding: '1rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: 4 }}>Return %</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: valuation.totalGainLossPercent >= 0 ? '#2e7d32' : '#c62828' }}>
+                        {valuation.totalGainLossPercent >= 0 ? '+' : ''}{Number(valuation.totalGainLossPercent).toFixed(2)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Valuation table */}
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: '#f9f9f9', textAlign: 'left' }}>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Ticker</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Name</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Qty</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Purchase Price</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Current Price</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>FX Rate</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Cost Basis</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Market Value</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Gain/Loss</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Return %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {valuation.holdings.length > 0 ? valuation.holdings.map((hv) => (
+                          <tr key={hv.id} style={{ borderTop: '1px solid #eee' }}>
+                            <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600 }}>{hv.ticker}</td>
+                            <td style={{ padding: '0.5rem 0.75rem' }}>{hv.name}</td>
+                            <td style={{ padding: '0.5rem 0.75rem' }}>{hv.quantity}</td>
+                            <td style={{ padding: '0.5rem 0.75rem' }}>
+                              {hv.holdingCurrency} {Number(hv.purchasePrice).toFixed(2)}
+                            </td>
+                            <td style={{ padding: '0.5rem 0.75rem' }}>
+                              {hv.currentPrice != null
+                                ? `${hv.holdingCurrency} ${Number(hv.currentPrice).toFixed(2)}`
+                                : <span style={{ color: '#999' }}>N/A</span>}
+                            </td>
+                            <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#666' }}>
+                              {hv.holdingCurrency !== valuation.baseCurrency
+                                ? `${hv.holdingCurrency}/${valuation.baseCurrency} ${Number(hv.fxRate).toFixed(4)}`
+                                : '-'}
+                            </td>
+                            <td style={{ padding: '0.5rem 0.75rem' }}>
+                              {valuation.baseCurrency} {Number(hv.costBasis).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: '0.5rem 0.75rem' }}>
+                              {valuation.baseCurrency} {Number(hv.marketValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: hv.gainLoss >= 0 ? '#2e7d32' : '#c62828' }}>
+                              {hv.gainLoss >= 0 ? '+' : ''}{valuation.baseCurrency} {Number(hv.gainLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: hv.gainLossPercent >= 0 ? '#2e7d32' : '#c62828' }}>
+                              {hv.gainLossPercent >= 0 ? '+' : ''}{Number(hv.gainLossPercent).toFixed(2)}%
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={10} style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>No holdings to value.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#999' }}>
+                    Prices from Finnhub. FX rates applied for cross-currency holdings. Values in {valuation.baseCurrency}.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>No valuation data available.</div>
               )}
             </div>
           )}

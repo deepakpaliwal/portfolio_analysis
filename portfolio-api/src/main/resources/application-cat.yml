@@ -1,0 +1,6 @@
+##########################################################
+# CAT Profile - Finnhub configuration
+##########################################################
+finnhub:
+  api-key: ${FINNHUB_API_KEY:d5qkfr1r01qhn30g8uegd5qkfr1r01qhn30g8uf0}
+  base-url: https://finnhub.io/api/v1
