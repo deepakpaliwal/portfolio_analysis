@@ -4,9 +4,11 @@ import com.portfolio.api.dto.AllocationResponse;
 import com.portfolio.api.dto.HoldingResponse;
 import com.portfolio.api.dto.PortfolioRequest;
 import com.portfolio.api.dto.PortfolioResponse;
+import com.portfolio.api.dto.ValuationResponse;
 import com.portfolio.api.model.User;
 import com.portfolio.api.repository.UserRepository;
 import com.portfolio.api.service.PortfolioService;
+import com.portfolio.api.service.ValuationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,10 +35,12 @@ import java.util.Map;
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
+    private final ValuationService valuationService;
     private final UserRepository userRepository;
 
-    public PortfolioController(PortfolioService portfolioService, UserRepository userRepository) {
+    public PortfolioController(PortfolioService portfolioService, ValuationService valuationService, UserRepository userRepository) {
         this.portfolioService = portfolioService;
+        this.valuationService = valuationService;
         this.userRepository = userRepository;
     }
 
@@ -86,6 +90,12 @@ public class PortfolioController {
     @Operation(summary = "Get portfolio allocation breakdown by asset type, sector, and currency")
     public ResponseEntity<AllocationResponse> getAllocation(@PathVariable Long id) {
         return ResponseEntity.ok(portfolioService.getAllocation(id));
+    }
+
+    @GetMapping("/{id}/valuation")
+    @Operation(summary = "Get real-time portfolio valuation with market prices, FX conversion, and gain/loss")
+    public ResponseEntity<ValuationResponse> getValuation(@PathVariable Long id) {
+        return ResponseEntity.ok(valuationService.getValuation(id));
     }
 
     @PostMapping(value = "/{id}/holdings/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

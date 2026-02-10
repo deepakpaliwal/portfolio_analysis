@@ -10,9 +10,9 @@
 - [x] FR-PM-009 — CSV import for holdings (Session 4)
 - [x] FR-PM-010 — Transaction history: buys, sells, dividends, splits (Session 4)
 - [x] FR-PM-012 — Allocation breakdown by asset class, sector, currency (Session 4)
-- [ ] FR-PM-005 — Real-time market value computation (needs external API)
-- [ ] FR-PM-006 — Unrealized gain/loss display (depends on FR-PM-005)
-- [ ] FR-PM-008 — Multi-currency FX conversion (needs FX rate source)
+- [x] FR-PM-005 — Real-time market value via Finnhub API (Session 5)
+- [x] FR-PM-006 — Unrealized gain/loss display (Session 5)
+- [x] FR-PM-008 — Multi-currency FX conversion via Finnhub forex rates (Session 5)
 - [ ] FR-UM-002 — OAuth 2.0 login via Google
 - [ ] FR-UM-002a — OAuth 2.0 login via Meta
 - [ ] FR-UM-003 — Email verification before full access
@@ -29,7 +29,7 @@ These are observed opportunities — not commitments. Future sessions should con
 
 ### API Enhancements
 - [x] Implement remaining CRUD for holdings, transactions, trade orders
-- [ ] Add market data fetching from an external API
+- [x] Add market data fetching from Finnhub API (Session 5)
 - [ ] Implement strategy backtesting endpoints
 - [ ] Add screener endpoint with filtering logic
 - [ ] WebSocket implementation for real-time price updates
