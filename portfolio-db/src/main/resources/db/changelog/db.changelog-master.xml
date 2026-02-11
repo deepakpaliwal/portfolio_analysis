@@ -22,6 +22,7 @@
     <include file="db/changelog/ddl/012-create-screener-reports-table.sql"/>
     <include file="db/changelog/ddl/013-create-admin-audit-log-table.sql"/>
     <include file="db/changelog/ddl/014-create-feature-toggles-table.sql"/>
+    <include file="db/changelog/ddl/015-create-stock-price-history-table.sql"/>
 
     <!-- ============================================ -->
     <!-- DML: Seed data and reference data            -->
