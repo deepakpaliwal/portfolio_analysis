@@ -99,6 +99,8 @@ const RiskAnalytics: React.FC = () => {
   const [lookbackDays, setLookbackDays] = useState(252);
   const [riskData, setRiskData] = useState<RiskData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'var' | 'holdings' | 'stress' | 'montecarlo'>('overview');
 
@@ -110,6 +112,25 @@ const RiskAnalytics: React.FC = () => {
     }).catch(() => setError('Failed to load portfolios'));
   }, []);
 
+  const syncPriceHistory = async () => {
+    if (!selectedPortfolio) return;
+    setSyncing(true);
+    setError('');
+    setSyncResult('');
+    try {
+      const res = await apiClient.post(`/v1/price-history/sync/portfolio/${selectedPortfolio}`, null, {
+        timeout: 120_000, // 2 min timeout for sync
+      });
+      const summary = res.data._summary;
+      setSyncResult(`Synced ${summary.totalRecords} price records for ${summary.totalTickers} tickers.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to sync price history';
+      setError('Sync failed: ' + msg);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const fetchRiskAnalytics = async () => {
     if (!selectedPortfolio) return;
     setLoading(true);
@@ -120,18 +141,19 @@ const RiskAnalytics: React.FC = () => {
       });
       setRiskData(res.data);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to compute risk analytics';
-      setError(msg);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const axiosErr = err as any;
+      const serverMsg = axiosErr?.response?.data?.message;
+      if (serverMsg && serverMsg.includes('sync price history')) {
+        setError('No price data found. Please click "Sync Prices" first to download historical data.');
+      } else {
+        const msg = err instanceof Error ? err.message : 'Failed to compute risk analytics';
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
-
-  // Auto-fetch when portfolio selection changes
-  useEffect(() => {
-    if (selectedPortfolio) fetchRiskAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPortfolio]);
 
   const tabStyle = (tab: string) => ({
     padding: '0.5rem 1.25rem',
@@ -188,6 +210,16 @@ const RiskAnalytics: React.FC = () => {
           </select>
         </div>
         <button
+          onClick={syncPriceHistory}
+          disabled={syncing || !selectedPortfolio}
+          style={{
+            padding: '0.5rem 1.5rem', background: '#ff9800', color: '#fff', border: 'none',
+            borderRadius: 4, cursor: syncing ? 'wait' : 'pointer', fontWeight: 600,
+          }}
+        >
+          {syncing ? 'Syncing...' : 'Sync Prices'}
+        </button>
+        <button
           onClick={fetchRiskAnalytics}
           disabled={loading || !selectedPortfolio}
           style={{
@@ -195,9 +227,11 @@ const RiskAnalytics: React.FC = () => {
             borderRadius: 4, cursor: loading ? 'wait' : 'pointer', fontWeight: 600,
           }}
         >
-          {loading ? 'Computing...' : 'Recalculate'}
+          {loading ? 'Computing...' : 'Calculate Risk'}
         </button>
       </div>
+
+      {syncResult && <div style={{ color: '#43a047', marginBottom: '1rem', fontWeight: 500 }}>{syncResult}</div>}
 
       {error && <div style={{ color: '#e53935', marginBottom: '1rem' }}>{error}</div>}
 

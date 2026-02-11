@@ -13,17 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
  * Risk analytics computation engine (FR-RA-001 through FR-RA-012).
  *
- * Fetches historical prices via Finnhub candle data, then computes:
- * VaR (Historical Simulation, Parametric, Monte Carlo), CVaR, volatility,
+ * Reads historical prices from local stock_price_history table (populated via
+ * StockPriceHistoryService sync), then computes VaR, CVaR, volatility,
  * beta, alpha, Sharpe/Sortino/Treynor ratios, max drawdown, and stress tests.
  */
 @Service
@@ -37,10 +35,14 @@ public class RiskAnalyticsService {
     private static final int MONTE_CARLO_SIMULATIONS = 10_000;
 
     private final PortfolioRepository portfolioRepository;
+    private final StockPriceHistoryService priceHistoryService;
     private final MarketDataService marketDataService;
 
-    public RiskAnalyticsService(PortfolioRepository portfolioRepository, MarketDataService marketDataService) {
+    public RiskAnalyticsService(PortfolioRepository portfolioRepository,
+                                 StockPriceHistoryService priceHistoryService,
+                                 MarketDataService marketDataService) {
         this.portfolioRepository = portfolioRepository;
+        this.priceHistoryService = priceHistoryService;
         this.marketDataService = marketDataService;
     }
 
@@ -69,44 +71,64 @@ public class RiskAnalyticsService {
             throw new IllegalStateException("Portfolio has no holdings");
         }
 
-        // Filter to STOCK holdings with valid tickers
+        // Filter to holdings with valid tickers (STOCK and ETF)
         List<Holding> stockHoldings = holdings.stream()
                 .filter(h -> h.getTicker() != null && !h.getTicker().isBlank())
+                .filter(h -> {
+                    String type = h.getAssetType() != null ? h.getAssetType().name() : "";
+                    return "STOCK".equals(type) || "ETF".equals(type);
+                })
                 .toList();
 
         if (stockHoldings.isEmpty()) {
-            throw new IllegalStateException("Portfolio has no stock holdings for risk analysis");
+            throw new IllegalStateException("Portfolio has no stock/ETF holdings for risk analysis");
         }
 
-        // Time range for historical data
-        long now = Instant.now().getEpochSecond();
-        long from = now - ((long) lookbackDays * 24 * 60 * 60);
+        // Date range for lookback
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(lookbackDays);
 
-        // Fetch closing prices for each holding and benchmark
+        // Fetch closing prices from local DB for each holding
         Map<String, double[]> closingPrices = new LinkedHashMap<>();
         for (Holding h : stockHoldings) {
-            double[] prices = fetchClosingPrices(h.getTicker(), from, now);
-            if (prices != null && prices.length > 1) {
+            double[] prices = priceHistoryService.getClosingPrices(h.getTicker(), startDate, endDate);
+            if (prices.length > 1) {
                 closingPrices.put(h.getTicker(), prices);
+                log.debug("Loaded {} price records for {} from local DB", prices.length, h.getTicker());
+            } else {
+                log.warn("No local price data for ticker {}. Run price-history sync first.", h.getTicker());
             }
         }
 
-        double[] benchmarkPrices = fetchClosingPrices(BENCHMARK, from, now);
-
-        if (closingPrices.isEmpty()) {
-            throw new IllegalStateException("Could not fetch historical prices for any holding");
+        // Fetch benchmark prices from local DB
+        double[] benchmarkPrices = priceHistoryService.getClosingPrices(BENCHMARK, startDate, endDate);
+        if (benchmarkPrices.length <= 1) {
+            log.warn("No local price data for benchmark {}. Run price-history sync first.", BENCHMARK);
+            benchmarkPrices = null;
         }
 
-        // Compute current market values and weights
+        if (closingPrices.isEmpty()) {
+            throw new IllegalStateException(
+                    "No historical prices found in local database. " +
+                    "Please sync price history first: POST /api/v1/price-history/sync/portfolio/" + portfolioId);
+        }
+
+        // Compute current market values and weights using latest stored close price
         Map<String, BigDecimal> marketValues = new LinkedHashMap<>();
         BigDecimal totalValue = BigDecimal.ZERO;
         for (Holding h : stockHoldings) {
             if (!closingPrices.containsKey(h.getTicker())) continue;
+
+            // Try live price first, fall back to latest stored close
             BigDecimal price = marketDataService.getCurrentPrice(h.getTicker());
+            if (price == null) {
+                price = priceHistoryService.getLatestClosePrice(h.getTicker());
+            }
             if (price == null) {
                 double[] prices = closingPrices.get(h.getTicker());
                 price = BigDecimal.valueOf(prices[prices.length - 1]);
             }
+
             BigDecimal mv = price.multiply(h.getQuantity(), MC);
             marketValues.put(h.getTicker(), mv);
             totalValue = totalValue.add(mv);
@@ -166,7 +188,6 @@ public class RiskAnalyticsService {
         resp.setAnnualizedVolatility(bd(annualVol));
 
         // VaR (FR-RA-001, FR-RA-002)
-        double sqrtT = Math.sqrt(timeHorizonDays);
         VaRMetrics var = new VaRMetrics();
         var.setHistoricalSimulation(bd(historicalVaR(portfolioReturns, confidenceLevel, timeHorizonDays, totalValue.doubleValue())));
         var.setParametric(bd(parametricVaR(dailyVol, confidenceLevel, timeHorizonDays, totalValue.doubleValue())));
@@ -203,7 +224,6 @@ public class RiskAnalyticsService {
             resp.setHoldingBetas(holdingBetaList);
 
             // Alpha (FR-RA-006) — Jensen's alpha = Rp - [Rf + Beta * (Rm - Rf)]
-            double dailyRf = RISK_FREE_RATE_ANNUAL / 252;
             double avgPortReturn = mean(portfolioReturns) * 252; // annualized
             double avgBenchReturn = mean(benchmarkReturns) * 252;
             double alpha = avgPortReturn - (RISK_FREE_RATE_ANNUAL + portBeta * (avgBenchReturn - RISK_FREE_RATE_ANNUAL));
@@ -228,7 +248,7 @@ public class RiskAnalyticsService {
         }
 
         // Max drawdown (FR-RA-008)
-        computeMaxDrawdown(portfolioReturns, closingPrices, from, resp);
+        computeMaxDrawdown(portfolioReturns, startDate, resp);
 
         // Stress testing (FR-RA-009)
         resp.setStressTests(buildStressScenarios(totalValue.doubleValue(), resp.getPortfolioBeta()));
@@ -240,24 +260,9 @@ public class RiskAnalyticsService {
         return resp;
     }
 
-    // ── Historical prices ──
-
-    private double[] fetchClosingPrices(String ticker, long from, long to) {
-        try {
-            Map<String, Object> candles = marketDataService.getStockCandles(ticker, "D", from, to);
-            if (candles == null || candles.get("c") == null) return null;
-
-            @SuppressWarnings("unchecked")
-            List<Number> closes = (List<Number>) candles.get("c");
-            return closes.stream().mapToDouble(Number::doubleValue).toArray();
-        } catch (Exception e) {
-            log.warn("Failed to fetch closing prices for {}: {}", ticker, e.getMessage());
-            return null;
-        }
-    }
+    // ── Return computation ──
 
     private double[] computeReturns(double[] prices, int maxLen) {
-        // Trim prices to maxLen from the end
         int start = Math.max(0, prices.length - maxLen);
         int n = prices.length - start;
         double[] returns = new double[n - 1];
@@ -287,7 +292,7 @@ public class RiskAnalyticsService {
     private double monteCarloVaR(double[] returns, double confidence, int horizon, double portfolioValue) {
         double mu = mean(returns);
         double sigma = standardDeviation(returns);
-        Random rng = new Random(42); // fixed seed for reproducibility
+        Random rng = new Random(42);
 
         double[] simReturns = new double[MONTE_CARLO_SIMULATIONS];
         for (int i = 0; i < MONTE_CARLO_SIMULATIONS; i++) {
@@ -339,10 +344,8 @@ public class RiskAnalyticsService {
 
     // ── Max Drawdown (FR-RA-008) ──
 
-    @SuppressWarnings("unchecked")
-    private void computeMaxDrawdown(double[] portfolioReturns, Map<String, double[]> closingPrices,
-                                     long fromEpoch, RiskAnalyticsResponse resp) {
-        // Reconstruct portfolio value series from returns
+    private void computeMaxDrawdown(double[] portfolioReturns, LocalDate startDate,
+                                     RiskAnalyticsResponse resp) {
         double[] valueSeries = new double[portfolioReturns.length + 1];
         valueSeries[0] = 1.0;
         for (int i = 0; i < portfolioReturns.length; i++) {
@@ -368,9 +371,6 @@ public class RiskAnalyticsService {
         }
 
         resp.setMaxDrawdown(bd(maxDD));
-
-        // Estimate dates from indices
-        LocalDate startDate = LocalDate.ofInstant(Instant.ofEpochSecond(fromEpoch), ZoneOffset.UTC);
         resp.setMaxDrawdownPeakDate(startDate.plusDays(peakIdx).format(DateTimeFormatter.ISO_LOCAL_DATE));
         resp.setMaxDrawdownTroughDate(startDate.plusDays(troughIdx).format(DateTimeFormatter.ISO_LOCAL_DATE));
     }
@@ -381,7 +381,6 @@ public class RiskAnalyticsService {
         double beta = portfolioBeta != null ? portfolioBeta.doubleValue() : 1.0;
         List<StressScenario> scenarios = new ArrayList<>();
 
-        // Historical scenarios with their approximate S&P 500 peak-to-trough declines
         scenarios.add(buildScenario("2008 Financial Crisis",
                 "Simulates the 2007-2009 subprime mortgage crisis and bank failures",
                 -56.8, beta, portfolioValue));
@@ -491,7 +490,7 @@ public class RiskAnalyticsService {
         if (confidence >= 0.99) return 2.326;
         if (confidence >= 0.95) return 1.645;
         if (confidence >= 0.90) return 1.282;
-        return 1.645; // default to 95%
+        return 1.645;
     }
 
     private BigDecimal bd(double value) {
