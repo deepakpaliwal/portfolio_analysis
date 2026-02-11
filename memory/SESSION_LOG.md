@@ -260,3 +260,54 @@ Screener:
 - **FR-SC-008**: Custom screening criteria (P/E, dividend yield, market cap, beta, price)
 - **FR-SC-009**: Technical indicators via Finnhub indicator API (SMA, EMA, RSI, MACD, Bollinger)
 - **FR-SC-010**: Save/revisit past screens (persisted in screener_reports table)
+
+---
+
+## Session 7 — 2026-02-10
+
+### What was done
+Implemented **full section 4.5 Risk Analytics** (FR-RA-001 through FR-RA-009, FR-RA-011, FR-RA-012)
+
+### New backend files created
+| File | Purpose |
+|---|---|
+| `dto/RiskAnalyticsResponse.java` | Comprehensive DTO with nested VaRMetrics, HoldingBeta, StressScenario, MonteCarloResult |
+| `service/RiskAnalyticsService.java` | Core risk computation engine: fetches historical candle data, computes all risk metrics |
+| `controller/RiskAnalyticsController.java` | REST endpoint for risk analytics |
+
+### Modified backend files
+| File | Changes |
+|---|---|
+| `service/MarketDataService.java` | Added `getStockCandles()` for Finnhub `/stock/candle` endpoint |
+| `config/CacheConfig.java` | Added `stockCandles` cache |
+
+### Frontend changes
+| File | Changes |
+|---|---|
+| `pages/RiskAnalytics.tsx` | Full rewrite: portfolio selector, configurable params (confidence, horizon, lookback), 5 tabs (Overview, VaR Detail, Holdings Beta, Stress Tests, Monte Carlo) |
+
+### API endpoint added
+```
+Risk Analytics:
+  GET /api/v1/risk/portfolio/{portfolioId}?confidenceLevel=0.95&timeHorizonDays=1&lookbackDays=252
+```
+
+### Risk metrics implemented
+- **VaR** (FR-RA-001): Historical Simulation, Parametric (Variance-Covariance), Monte Carlo (10,000 sims)
+- **Configurable params** (FR-RA-002): Confidence 90/95/99%, horizon 1/10/30-day, lookback 126/252/504 days
+- **CVaR** (FR-RA-003): Expected Shortfall at 95% and 99%
+- **Volatility** (FR-RA-004): Annualized and daily standard deviation
+- **Beta** (FR-RA-005): Portfolio-level and per-holding beta vs SPY
+- **Alpha** (FR-RA-006): Jensen's alpha (risk-adjusted excess return)
+- **Ratios** (FR-RA-007): Sharpe, Sortino, Treynor
+- **Max Drawdown** (FR-RA-008): Peak-to-trough with dates
+- **Stress Testing** (FR-RA-009): 5 historical scenarios (2008 Crisis, COVID-19, Dot-com, Black Monday, Interest Rate Shock)
+- **Risk Dashboard** (FR-RA-011): Full tabbed UI with summary cards
+- **On-demand recalculation** (FR-RA-012): Recalculate button with configurable parameters
+
+### Architecture decisions
+- Portfolio daily returns = weighted sum of individual holding daily returns
+- Beta computed as Cov(asset, benchmark) / Var(benchmark) using SPY as benchmark
+- Stress testing uses portfolio beta to scale historical market shocks
+- Monte Carlo uses normal distribution fitted to historical return mean/std dev
+- Risk-free rate assumed at 5% annual (US Treasury proxy)
