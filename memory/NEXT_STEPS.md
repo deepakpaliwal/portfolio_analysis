@@ -17,11 +17,29 @@
 - [x] FR-RA-001 through FR-RA-009 — Risk Analytics (Session 7)
 - [x] FR-RA-011 — Risk dashboard (Session 7)
 - [x] FR-RA-012 — On-demand recalculation (Session 7)
+- [x] Batch Price Module — CSV storage, watermarking, scheduler, management UI (Session 8)
 - [ ] FR-UM-002 — OAuth 2.0 login via Google
 - [ ] FR-UM-002a — OAuth 2.0 login via Meta
 - [ ] FR-UM-003 — Email verification before full access
-- [ ] FR-UM-007 — Password complexity (enforced in RegisterRequest DTO)
 - [ ] FR-UM-008 — Multi-factor authentication (TOTP)
+
+## Pending Sections (by priority)
+
+### High Priority — Next to implement
+1. **4.6 Correlation & Hedging Analysis** — Correlation matrix, heatmap, hedge suggestions (8 requirements)
+2. **4.7 Strategy Engine** — Strategy suggestions, backtesting, trade signals (7 requirements)
+3. **4.9 Reporting & Dashboards** — Main dashboard, performance charts, WebSocket updates (7 requirements)
+4. **4.10 Admin Panel** — User management, system config, feature toggles (12 requirements)
+
+### Medium Priority
+5. **4.8 Automated Trading** — Broker integration, auto-execution, paper trading (12 requirements)
+6. **4.11 Freemium & Subscription** — Stripe/PayPal, tiers, billing (12 requirements)
+7. **4.12 Alerting & Notifications** — Email, SMS, in-app alerts (12 requirements)
+8. **4.3 Asset Management** — Bonds, options, crypto, real estate (remaining sub-sections)
+
+### Lower Priority
+9. **4.13 Log Search & Management** — ELK/OpenSearch (10 requirements)
+10. **4.14 Batch Processing & Deep Analysis** — Spring Batch, recommendation reports (12 requirements)
 
 ## Potential areas of work
 These are observed opportunities — not commitments. Future sessions should confirm with the user before starting any of these.
@@ -41,7 +59,8 @@ These are observed opportunities — not commitments. Future sessions should con
 ### UI Enhancements
 - [ ] Build out Dashboard page with real portfolio metrics and charts
 - [x] Implement Screener page filtering and results (Session 6)
-- [x] Build Risk analytics page (VaR, CVaR, beta, alpha, ratios, drawdown, stress tests, Monte Carlo) (Session 7)
+- [x] Build Risk analytics page (Session 7)
+- [x] Build Batch Management page (Session 8)
 - [ ] Build Trading page (order entry form, order book)
 - [ ] Admin panel — user management, feature toggle controls
 
@@ -50,9 +69,8 @@ These are observed opportunities — not commitments. Future sessions should con
 - [ ] Automated database backup strategy
 - [ ] Monitoring and alerting setup
 
-### Batch Processing
-- [ ] Implement Spark analytics jobs (correlation matrix, risk metrics)
-- [ ] Connect batch results back to API for user consumption
-
 ## Known Issues
-- None documented yet. Future sessions should add issues here as they are discovered.
+- Finnhub free tier: `/stock/candle` returns 403 (paid only)
+- Yahoo Finance: Returns 429 without proper User-Agent header (solved by batch module)
+- Entity lazy loading: Always use `@Transactional` when accessing Portfolio.user or Portfolio.holdings
+- User entity uses `getEmail()` NOT `getUsername()`
