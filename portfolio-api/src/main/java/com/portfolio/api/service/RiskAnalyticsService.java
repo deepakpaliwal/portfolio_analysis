@@ -58,7 +58,7 @@ public class RiskAnalyticsService {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new IllegalArgumentException("Portfolio not found: " + portfolioId));
 
-        if (!portfolio.getUser().getUsername().equals(username)) {
+        if (!portfolio.getUser().getEmail().equals(username)) {
             throw new SecurityException("Access denied");
         }
 
