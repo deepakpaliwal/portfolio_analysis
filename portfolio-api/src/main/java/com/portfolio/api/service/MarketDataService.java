@@ -8,14 +8,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class MarketDataService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
+    private static final String YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
 
     private final RestTemplate restTemplate;
     private final FinnhubConfig finnhubConfig;
@@ -259,8 +258,13 @@ public class MarketDataService {
 
     // ───────── Stock Candles / Historical Prices (FR-RA) ─────────
 
+    /**
+     * Fetch historical daily OHLCV data. Tries Finnhub first, falls back to Yahoo Finance.
+     * Returns a map with keys: c (close), o (open), h (high), l (low), v (volume), t (timestamps), s ("ok").
+     */
     @Cacheable(value = "stockCandles", key = "#ticker + '-' + #resolution + '-' + #from + '-' + #to")
     public Map<String, Object> getStockCandles(String ticker, String resolution, long from, long to) {
+        // Try Finnhub first
         try {
             String url = String.format("%s/stock/candle?symbol=%s&resolution=%s&from=%d&to=%d&token=%s",
                     finnhubConfig.getBaseUrl(), ticker, resolution, from, to, finnhubConfig.getApiKey());
@@ -269,10 +273,98 @@ public class MarketDataService {
             if (response != null && "ok".equals(response.get("s"))) {
                 return response;
             }
-            log.warn("No candle data for {}: status={}", ticker, response != null ? response.get("s") : "null");
-            return null;
+            log.info("Finnhub candle returned status={} for {}, trying Yahoo Finance",
+                    response != null ? response.get("s") : "null", ticker);
         } catch (Exception e) {
-            log.error("Failed to fetch candles for {}: {}", ticker, e.getMessage());
+            log.info("Finnhub candle failed for {} ({}), trying Yahoo Finance", ticker, e.getMessage());
+        }
+
+        // Fallback to Yahoo Finance
+        return getStockCandlesFromYahoo(ticker, from, to);
+    }
+
+    /**
+     * Fetch historical daily prices from Yahoo Finance v8 chart API (free, no API key).
+     * Converts the Yahoo response format to the same structure as Finnhub candles.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getStockCandlesFromYahoo(String ticker, long from, long to) {
+        try {
+            String url = String.format("%s/%s?period1=%d&period2=%d&interval=1d",
+                    YAHOO_CHART_URL, ticker, from, to);
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+
+            if (response == null || response.get("chart") == null) {
+                log.warn("Yahoo Finance returned null for {}", ticker);
+                return null;
+            }
+
+            Map<String, Object> chart = (Map<String, Object>) response.get("chart");
+            List<Map<String, Object>> results = (List<Map<String, Object>>) chart.get("result");
+            if (results == null || results.isEmpty()) {
+                log.warn("Yahoo Finance returned empty results for {}", ticker);
+                return null;
+            }
+
+            Map<String, Object> result = results.get(0);
+            List<Number> timestamps = (List<Number>) result.get("timestamp");
+            if (timestamps == null || timestamps.isEmpty()) {
+                log.warn("Yahoo Finance returned no timestamps for {}", ticker);
+                return null;
+            }
+
+            Map<String, Object> indicators = (Map<String, Object>) result.get("indicators");
+            List<Map<String, Object>> quoteList = (List<Map<String, Object>>) indicators.get("quote");
+            if (quoteList == null || quoteList.isEmpty()) {
+                return null;
+            }
+
+            Map<String, Object> quote = quoteList.get(0);
+            List<Number> closes = (List<Number>) quote.get("close");
+            List<Number> opens = (List<Number>) quote.get("open");
+            List<Number> highs = (List<Number>) quote.get("high");
+            List<Number> lows = (List<Number>) quote.get("low");
+            List<Number> volumes = (List<Number>) quote.get("volume");
+
+            // Filter out entries where close is null (non-trading days Yahoo sometimes includes)
+            List<Number> filteredT = new ArrayList<>();
+            List<Number> filteredC = new ArrayList<>();
+            List<Number> filteredO = new ArrayList<>();
+            List<Number> filteredH = new ArrayList<>();
+            List<Number> filteredL = new ArrayList<>();
+            List<Number> filteredV = new ArrayList<>();
+
+            for (int i = 0; i < timestamps.size(); i++) {
+                Number closeVal = (closes != null && i < closes.size()) ? closes.get(i) : null;
+                if (closeVal == null) continue;
+
+                filteredT.add(timestamps.get(i));
+                filteredC.add(closeVal);
+                filteredO.add((opens != null && i < opens.size()) ? opens.get(i) : closeVal);
+                filteredH.add((highs != null && i < highs.size()) ? highs.get(i) : closeVal);
+                filteredL.add((lows != null && i < lows.size()) ? lows.get(i) : closeVal);
+                filteredV.add((volumes != null && i < volumes.size()) ? volumes.get(i) : 0);
+            }
+
+            if (filteredC.isEmpty()) {
+                log.warn("Yahoo Finance returned all-null closes for {}", ticker);
+                return null;
+            }
+
+            // Convert to Finnhub-compatible format
+            Map<String, Object> candles = new HashMap<>();
+            candles.put("s", "ok");
+            candles.put("t", filteredT);
+            candles.put("c", filteredC);
+            candles.put("o", filteredO);
+            candles.put("h", filteredH);
+            candles.put("l", filteredL);
+            candles.put("v", filteredV);
+
+            log.info("Yahoo Finance returned {} price records for {}", filteredC.size(), ticker);
+            return candles;
+        } catch (Exception e) {
+            log.error("Failed to fetch candles from Yahoo Finance for {}: {}", ticker, e.getMessage());
             return null;
         }
     }
