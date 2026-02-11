@@ -31,13 +31,16 @@ public class StockPriceHistoryService {
     private final StockPriceHistoryRepository priceHistoryRepository;
     private final PortfolioRepository portfolioRepository;
     private final MarketDataService marketDataService;
+    private final PriceFetchBatchService priceFetchBatchService;
 
     public StockPriceHistoryService(StockPriceHistoryRepository priceHistoryRepository,
                                      PortfolioRepository portfolioRepository,
-                                     MarketDataService marketDataService) {
+                                     MarketDataService marketDataService,
+                                     PriceFetchBatchService priceFetchBatchService) {
         this.priceHistoryRepository = priceHistoryRepository;
         this.portfolioRepository = portfolioRepository;
         this.marketDataService = marketDataService;
+        this.priceFetchBatchService = priceFetchBatchService;
     }
 
     /**
@@ -172,16 +175,22 @@ public class StockPriceHistoryService {
     }
 
     /**
-     * Get closing prices for a ticker within a date range from local DB.
-     * Returns prices sorted by date ascending, or empty array if none found.
+     * Get closing prices for a ticker within a date range.
+     * Tries local DB first, falls back to CSV files from batch module.
      */
     public double[] getClosingPrices(String ticker, LocalDate from, LocalDate to) {
         List<StockPriceHistory> records = priceHistoryRepository
                 .findByTickerAndTradeDateBetweenOrderByTradeDateAsc(ticker, from, to);
 
-        return records.stream()
-                .mapToDouble(r -> r.getClosePrice().doubleValue())
-                .toArray();
+        if (!records.isEmpty()) {
+            return records.stream()
+                    .mapToDouble(r -> r.getClosePrice().doubleValue())
+                    .toArray();
+        }
+
+        // Fallback: try CSV files from batch price fetch
+        log.info("No DB records for {}, trying CSV fallback", ticker);
+        return priceFetchBatchService.readClosingPricesFromCsv(ticker, from, to);
     }
 
     /**

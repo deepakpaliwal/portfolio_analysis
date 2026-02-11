@@ -118,14 +118,15 @@ const RiskAnalytics: React.FC = () => {
     setError('');
     setSyncResult('');
     try {
+      // Try direct sync first
       const res = await apiClient.post(`/v1/price-history/sync/portfolio/${selectedPortfolio}`, null, {
-        timeout: 120_000, // 2 min timeout for sync
+        timeout: 120_000,
       });
       const summary = res.data._summary;
       setSyncResult(`Synced ${summary.totalRecords} price records for ${summary.totalTickers} tickers.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to sync price history';
-      setError('Sync failed: ' + msg);
+    } catch {
+      // Direct sync may fail due to API rate limits — recommend batch page
+      setError('Direct sync failed. Go to "Batch Prices" page to fetch price data with better reliability.');
     } finally {
       setSyncing(false);
     }

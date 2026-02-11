@@ -9,6 +9,7 @@ const navItems = [
   { to: '/screener', label: 'Screener' },
   { to: '/risk', label: 'Risk Analytics' },
   { to: '/trading', label: 'Trading' },
+  { to: '/batch', label: 'Batch Prices' },
 ];
 
 const Layout: React.FC = () => {
