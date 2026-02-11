@@ -8,6 +8,7 @@ import com.portfolio.api.repository.PortfolioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -52,6 +53,7 @@ public class RiskAnalyticsService {
      * @param timeHorizonDays e.g. 1, 10, 30
      * @param lookbackDays    e.g. 252 (1 year)
      */
+    @Transactional(readOnly = true)
     public RiskAnalyticsResponse computeRiskAnalytics(Long portfolioId, String username,
                                                        double confidenceLevel, int timeHorizonDays, int lookbackDays) {
 
