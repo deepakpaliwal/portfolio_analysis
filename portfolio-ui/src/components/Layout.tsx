@@ -10,6 +10,7 @@ const navItems = [
   { to: '/risk', label: 'Risk Analytics' },
   { to: '/trading', label: 'Trading' },
   { to: '/batch', label: 'Batch Prices' },
+  { to: '/correlation', label: 'Correlation' },
 ];
 
 const Layout: React.FC = () => {

@@ -8,6 +8,7 @@ import Screener from "./pages/Screener";
 import RiskAnalytics from "./pages/RiskAnalytics";
 import Trading from "./pages/Trading";
 import BatchManagement from "./pages/BatchManagement";
+import CorrelationAnalysis from "./pages/CorrelationAnalysis";
 import AdminPanel from "./pages/AdminPanel";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -67,6 +68,7 @@ const App: React.FC = () => {
         <Route path="risk" element={<RiskAnalytics />} />
         <Route path="trading" element={<Trading />} />
         <Route path="batch" element={<BatchManagement />} />
+        <Route path="correlation" element={<CorrelationAnalysis />} />
         <Route path="admin" element={<AdminPanel />} />
       </Route>
 
