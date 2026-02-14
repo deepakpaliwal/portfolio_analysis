@@ -11,6 +11,7 @@ const navItems = [
   { to: '/trading', label: 'Trading' },
   { to: '/batch', label: 'Batch Prices' },
   { to: '/correlation', label: 'Correlation' },
+  { to: '/strategies', label: 'Strategies' },
 ];
 
 const Layout: React.FC = () => {
