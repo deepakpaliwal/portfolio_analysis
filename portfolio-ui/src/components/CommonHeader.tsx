@@ -7,6 +7,7 @@ import logo from '../assets/logo.svg';
 const CommonHeader: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const isLoggedIn = isAuthenticated && !!user;
 
   return (
     <header style={{ width: '100%', borderBottom: '1px solid #E2E8F0', background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(6px)' }}>
@@ -17,9 +18,9 @@ const CommonHeader: React.FC = () => {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
           <Link to="/" style={{ textDecoration: 'none', color: '#0F172A', fontWeight: 600 }}>Home</Link>
-          {isAuthenticated ? (
+          {isLoggedIn ? (
             <>
-              <span style={{ color: '#334155', fontWeight: 600 }}>Hi, {user?.firstName || 'User'}</span>
+              <span style={{ color: '#334155', fontWeight: 600 }}>Hi, {user?.firstName}</span>
               <Link to="/dashboard" style={{ textDecoration: 'none', background: '#1D4ED8', color: '#fff', padding: '0.5rem 0.8rem', borderRadius: 8, fontWeight: 600 }}>Dashboard</Link>
               <button
                 onClick={() => dispatch(logout())}

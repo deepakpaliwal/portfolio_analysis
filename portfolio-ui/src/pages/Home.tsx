@@ -27,7 +27,8 @@ const imageFallbackStyle: React.CSSProperties = {
 };
 
 const Home: React.FC = () => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const isLoggedIn = isAuthenticated && !!user;
   const [riskImgFailed, setRiskImgFailed] = useState(false);
   const [tradingImgFailed, setTradingImgFailed] = useState(false);
 
@@ -47,7 +48,7 @@ const Home: React.FC = () => {
             valuation, risk analytics, and correlation tools through a clean and intuitive dashboard.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {!isAuthenticated ? (
+            {!isLoggedIn ? (
               <>
                 <Link to="/register" style={{ textDecoration: 'none', background: '#1D4ED8', color: '#fff', padding: '0.78rem 1.2rem', borderRadius: 10, fontWeight: 700 }}>Create Free Account</Link>
                 <Link to="/login" style={{ textDecoration: 'none', background: '#E2E8F0', color: '#0F172A', padding: '0.78rem 1.2rem', borderRadius: 10, fontWeight: 700 }}>Open Dashboard</Link>
