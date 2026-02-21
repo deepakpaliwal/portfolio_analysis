@@ -153,17 +153,17 @@ public class PriceFetchBatchService {
         statusCounts.put("OK", tickerConfigRepo.countByLastRunStatus("OK"));
         statusCounts.put("ERROR", tickerConfigRepo.countByLastRunStatus("ERROR"));
 
-        return Map.of(
-                "totalConfiguredTickers", tickerConfigRepo.count(),
-                "enabledTickers", tickerConfigRepo.countByEnabledTrue(),
-                "disabledTickers", tickerConfigRepo.countByEnabledFalse(),
-                "totalBatchRecordCount", tickerConfigRepo.sumRecordCount(),
-                "totalMarketHistoryRecords", marketPriceHistoryRepository.countAllRecords(),
-                "lastBatchRunAt", tickerConfigRepo.findLastBatchRunAt(),
-                "latestTradeDate", marketPriceHistoryRepository.findLatestTradeDate(),
-                "assetClassCounts", assetClassCounts,
-                "statusCounts", statusCounts
-        );
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalConfiguredTickers", tickerConfigRepo.count());
+        summary.put("enabledTickers", tickerConfigRepo.countByEnabledTrue());
+        summary.put("disabledTickers", tickerConfigRepo.countByEnabledFalse());
+        summary.put("totalBatchRecordCount", tickerConfigRepo.sumRecordCount());
+        summary.put("totalMarketHistoryRecords", marketPriceHistoryRepository.countAllRecords());
+        summary.put("lastBatchRunAt", tickerConfigRepo.findLastBatchRunAt());
+        summary.put("latestTradeDate", marketPriceHistoryRepository.findLatestTradeDate());
+        summary.put("assetClassCounts", assetClassCounts);
+        summary.put("statusCounts", statusCounts);
+        return summary;
     }
 
     @SuppressWarnings("unchecked")
