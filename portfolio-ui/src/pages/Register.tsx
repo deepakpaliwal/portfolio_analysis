@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '../store/store';
 import { loginSuccess } from '../store/slices/authSlice';
 import apiClient from '../api/client';
+import logo from '../assets/logo.svg';
 
 const Register: React.FC = () => {
   const [firstName, setFirstName] = useState('');
@@ -51,7 +52,7 @@ const Register: React.FC = () => {
       dispatch(loginSuccess({ token: response.data.token, user: response.data.user }));
       navigate('/dashboard');
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string; fieldErrors?: Record<string, string> }; status?: number } };
+      const axiosErr = err as { response?: { data?: { error?: string; fieldErrors?: Record<string, string> } } };
       if (axiosErr.response?.data?.fieldErrors) {
         setFieldErrors(axiosErr.response.data.fieldErrors);
       } else if (axiosErr.response?.data?.error) {
@@ -66,76 +67,83 @@ const Register: React.FC = () => {
 
   const inputStyle = {
     width: '100%',
-    padding: '0.5rem',
-    border: '1px solid #ccc',
-    borderRadius: 4,
+    padding: '0.58rem',
+    border: '1px solid #cbd5e1',
+    borderRadius: 8,
     boxSizing: 'border-box' as const,
   };
 
   const errorInputStyle = {
     ...inputStyle,
-    border: '1px solid #c00',
+    border: '1px solid #dc2626',
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#1a1a2e' }}>
-      <div style={{ background: '#fff', padding: '2rem', borderRadius: 8, width: 420, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '0.5rem', color: '#1a1a2e' }}>Portfolio Analysis</h1>
-        <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#666' }}>Create your account</p>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(140deg, #0F172A, #1D4ED8)' }}>
+      <div style={{ background: '#fff', padding: '1.8rem', borderRadius: 14, width: 440, boxShadow: '0 15px 35px rgba(15,23,42,0.35)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <img src={logo} alt="Portfolio Analysis logo" style={{ height: 48, marginBottom: 8 }} />
+          <h1 style={{ textAlign: 'center', marginBottom: '0.4rem', color: '#0F172A', fontSize: '1.45rem' }}>Create account</h1>
+          <p style={{ textAlign: 'center', marginBottom: '1.2rem', color: '#64748B' }}>Start your educational portfolio journey</p>
+        </div>
         <form onSubmit={handleSubmit}>
           {error && (
-            <div style={{ background: '#fee', color: '#c00', padding: '0.75rem', borderRadius: 4, marginBottom: '1rem' }}>
+            <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: 8, marginBottom: '1rem' }}>
               {error}
             </div>
           )}
 
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>First Name</label>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, color: '#1E293B' }}>First Name</label>
               <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required
                 style={fieldErrors.firstName ? errorInputStyle : inputStyle} />
-              {fieldErrors.firstName && <span style={{ color: '#c00', fontSize: '0.8rem' }}>{fieldErrors.firstName}</span>}
+              {fieldErrors.firstName && <span style={{ color: '#b91c1c', fontSize: '0.8rem' }}>{fieldErrors.firstName}</span>}
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Last Name</label>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, color: '#1E293B' }}>Last Name</label>
               <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required
                 style={fieldErrors.lastName ? errorInputStyle : inputStyle} />
-              {fieldErrors.lastName && <span style={{ color: '#c00', fontSize: '0.8rem' }}>{fieldErrors.lastName}</span>}
+              {fieldErrors.lastName && <span style={{ color: '#b91c1c', fontSize: '0.8rem' }}>{fieldErrors.lastName}</span>}
             </div>
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Email</label>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, color: '#1E293B' }}>Email</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
               style={fieldErrors.email ? errorInputStyle : inputStyle} />
-            {fieldErrors.email && <span style={{ color: '#c00', fontSize: '0.8rem' }}>{fieldErrors.email}</span>}
+            {fieldErrors.email && <span style={{ color: '#b91c1c', fontSize: '0.8rem' }}>{fieldErrors.email}</span>}
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Password</label>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, color: '#1E293B' }}>Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
               style={fieldErrors.password ? errorInputStyle : inputStyle} />
-            {fieldErrors.password && <span style={{ color: '#c00', fontSize: '0.8rem' }}>{fieldErrors.password}</span>}
-            <span style={{ color: '#888', fontSize: '0.75rem', display: 'block', marginTop: 2 }}>
+            {fieldErrors.password && <span style={{ color: '#b91c1c', fontSize: '0.8rem' }}>{fieldErrors.password}</span>}
+            <span style={{ color: '#94A3B8', fontSize: '0.75rem', display: 'block', marginTop: 2 }}>
               Min 12 chars, uppercase, lowercase, digit, and special character
             </span>
           </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Confirm Password</label>
+          <div style={{ marginBottom: '1.2rem' }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, color: '#1E293B' }}>Confirm Password</label>
             <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required
               style={fieldErrors.confirmPassword ? errorInputStyle : inputStyle} />
-            {fieldErrors.confirmPassword && <span style={{ color: '#c00', fontSize: '0.8rem' }}>{fieldErrors.confirmPassword}</span>}
+            {fieldErrors.confirmPassword && <span style={{ color: '#b91c1c', fontSize: '0.8rem' }}>{fieldErrors.confirmPassword}</span>}
           </div>
 
           <button type="submit" disabled={loading}
-            style={{ width: '100%', padding: '0.75rem', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+            style={{ width: '100%', padding: '0.74rem', background: '#1D4ED8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '1rem' }}>
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
 
-          <p style={{ textAlign: 'center', marginTop: '1rem', color: '#666' }}>
+          <p style={{ textAlign: 'center', marginTop: '1rem', color: '#64748B' }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#1a1a2e', fontWeight: 600 }}>Sign in</Link>
+            <Link to="/login" style={{ color: '#1D4ED8', fontWeight: 700 }}>Sign in</Link>
+          </p>
+
+          <p style={{ marginTop: '0.8rem', color: '#94A3B8', fontSize: '0.77rem', lineHeight: 1.5 }}>
+            Educational use only. No financial advice is provided and we accept no liability for decisions based on this platform.
           </p>
         </form>
       </div>
