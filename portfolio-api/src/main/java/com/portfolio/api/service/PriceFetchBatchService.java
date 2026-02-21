@@ -166,8 +166,8 @@ public class PriceFetchBatchService {
      * Fetch a single ticker by name (creates config if needed).
      */
     @Transactional
-    public int fetchSingleTicker(String ticker) {
-        ticker = ticker.toUpperCase();
+    public int fetchSingleTicker(String l_ticker) {
+        final String ticker = l_ticker.toUpperCase();
         BatchTickerConfig config = tickerConfigRepo.findByTicker(ticker)
                 .orElseGet(() -> {
                     BatchTickerConfig c = new BatchTickerConfig();
