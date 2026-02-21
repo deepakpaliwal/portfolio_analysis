@@ -1,0 +1,6 @@
+<svg width="280" height="180" viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="280" height="180" rx="16" fill="#E0F2FE"/>
+  <path d="M36 140L80 98L112 116L166 66L212 86L244 42" stroke="#0284C7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="244" cy="42" r="8" fill="#0369A1"/>
+  <text x="24" y="36" fill="#0F172A" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="700">Risk & Correlation</text>
+</svg>
