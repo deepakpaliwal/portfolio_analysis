@@ -291,8 +291,11 @@ public class CorrelationService {
         Set<String> suggestedInstruments = new HashSet<>();
 
         for (int i = 0; i < tickers.size(); i++) {
+            String ticker = tickers.get(i);
+            String tickerName = tickerNames.get(i);
+
             Holding h = holdings.stream()
-                    .filter(ho -> ho.getTicker().equals(tickers.get(i)))
+                    .filter(ho -> ho.getTicker().equals(ticker))
                     .findFirst().orElse(null);
             if (h == null) continue;
 
@@ -301,10 +304,10 @@ public class CorrelationService {
             // Sector-specific inverse ETF
             if (sectorHedges.containsKey(sector)) {
                 String[] hedge = sectorHedges.get(sector);
-                if (suggestedInstruments.add(hedge[0] + "-" + tickers.get(i))) {
+                if (suggestedInstruments.add(hedge[0] + "-" + ticker)) {
                     HedgeSuggestion s = new HedgeSuggestion();
-                    s.setHoldingTicker(tickers.get(i));
-                    s.setHoldingName(tickerNames.get(i));
+                    s.setHoldingTicker(ticker);
+                    s.setHoldingName(tickerName);
                     s.setHedgeType("Inverse ETF");
                     s.setHedgeInstrument(hedge[0]);
                     s.setDescription(hedge[1]);
@@ -315,11 +318,11 @@ public class CorrelationService {
 
             // General put option suggestion
             HedgeSuggestion putSuggestion = new HedgeSuggestion();
-            putSuggestion.setHoldingTicker(tickers.get(i));
-            putSuggestion.setHoldingName(tickerNames.get(i));
+            putSuggestion.setHoldingTicker(ticker);
+            putSuggestion.setHoldingName(tickerName);
             putSuggestion.setHedgeType("Put Option");
-            putSuggestion.setHedgeInstrument(tickers.get(i) + " PUT");
-            putSuggestion.setDescription("Protective put on " + tickers.get(i) + " — limits downside while preserving upside");
+            putSuggestion.setHedgeInstrument(ticker + " PUT");
+            putSuggestion.setDescription("Protective put on " + ticker + " — limits downside while preserving upside");
             putSuggestion.setExpectedCorrelation(bd(-1.0));
             suggestions.add(putSuggestion);
         }
