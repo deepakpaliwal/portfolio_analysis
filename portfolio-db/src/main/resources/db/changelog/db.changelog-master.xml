@@ -24,6 +24,7 @@
     <include file="db/changelog/ddl/014-create-feature-toggles-table.sql"/>
     <include file="db/changelog/ddl/015-create-stock-price-history-table.sql"/>
     <include file="db/changelog/ddl/016-create-batch-ticker-config-table.sql"/>
+    <include file="db/changelog/ddl/017-create-market-price-history-and-enhance-batch-config.sql"/>
 
     <!-- ============================================ -->
     <!-- DML: Seed data and reference data            -->

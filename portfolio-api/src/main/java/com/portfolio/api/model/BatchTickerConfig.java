@@ -21,6 +21,25 @@ public class BatchTickerConfig {
     @Column(nullable = false)
     private Boolean enabled = true;
 
+
+    @Column(name = "asset_class", nullable = false, length = 20)
+    private String assetClass = "EQUITY";
+
+    @Column(name = "market_source", nullable = false, length = 50)
+    private String marketSource = "YAHOO";
+
+    @Column(name = "option_contract", length = 120)
+    private String optionContract;
+
+    @Column(name = "option_type", length = 10)
+    private String optionType;
+
+    @Column(name = "option_strike", precision = 19, scale = 4)
+    private java.math.BigDecimal optionStrike;
+
+    @Column(name = "option_expiry")
+    private LocalDate optionExpiry;
+
     @Column(name = "last_sync_date")
     private LocalDate lastSyncDate;
 
@@ -72,6 +91,25 @@ public class BatchTickerConfig {
 
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+
+
+    public String getAssetClass() { return assetClass; }
+    public void setAssetClass(String assetClass) { this.assetClass = assetClass; }
+
+    public String getMarketSource() { return marketSource; }
+    public void setMarketSource(String marketSource) { this.marketSource = marketSource; }
+
+    public String getOptionContract() { return optionContract; }
+    public void setOptionContract(String optionContract) { this.optionContract = optionContract; }
+
+    public String getOptionType() { return optionType; }
+    public void setOptionType(String optionType) { this.optionType = optionType; }
+
+    public java.math.BigDecimal getOptionStrike() { return optionStrike; }
+    public void setOptionStrike(java.math.BigDecimal optionStrike) { this.optionStrike = optionStrike; }
+
+    public LocalDate getOptionExpiry() { return optionExpiry; }
+    public void setOptionExpiry(LocalDate optionExpiry) { this.optionExpiry = optionExpiry; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
