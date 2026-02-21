@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../store/store';
-import { logout } from '../store/slices/authSlice';
-import logo from '../assets/logo.svg';
+import { useAppSelector } from '../store/store';
+import CommonHeader from '../components/CommonHeader';
+import CommonFooter from '../components/CommonFooter';
 import heroChart from '../assets/hero-chart.svg';
 import featureRisk from '../assets/feature-risk.svg';
 import featureTrading from '../assets/feature-trading.svg';
@@ -27,34 +27,15 @@ const imageFallbackStyle: React.CSSProperties = {
 };
 
 const Home: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [riskImgFailed, setRiskImgFailed] = useState(false);
   const [tradingImgFailed, setTradingImgFailed] = useState(false);
 
   return (
     <div style={{ background: 'linear-gradient(180deg, #F8FBFF 0%, #EEF5FF 60%, #FFFFFF 100%)', minHeight: '100vh' }}>
-      <header style={{ maxWidth: 1160, margin: '0 auto', padding: '1.25rem 1.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <img src={logo} alt="Portfolio Analysis logo" style={{ height: 52 }} />
+      <CommonHeader />
 
-        {!isAuthenticated ? (
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Link to="/login" style={{ textDecoration: 'none', color: '#0F172A', fontWeight: 600, padding: '0.6rem 1rem' }}>Sign In</Link>
-            <Link to="/register" style={{ textDecoration: 'none', background: '#2563EB', color: '#fff', padding: '0.6rem 1rem', borderRadius: 10, fontWeight: 600 }}>Get Started</Link>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ color: '#1E293B', fontWeight: 700 }}>Hi, {user?.firstName || 'User'}</span>
-            <Link to="/dashboard" style={{ textDecoration: 'none', background: '#1D4ED8', color: '#fff', padding: '0.55rem 0.9rem', borderRadius: 10, fontWeight: 600 }}>Go to Dashboard</Link>
-            <button
-              onClick={() => dispatch(logout())}
-              style={{ border: '1px solid #94A3B8', background: '#fff', color: '#1E293B', padding: '0.55rem 0.9rem', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}
-            >
-              Logout
-            </button>
-          </div>
-        )}
-      </header>
+
 
       <section style={{ maxWidth: 1160, margin: '0 auto', padding: '2rem 1.25rem 1.75rem', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: '2rem', alignItems: 'center' }}>
         <div>
@@ -118,16 +99,8 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      <footer style={{ maxWidth: 1160, margin: '0 auto', padding: '0 1.25rem 2rem' }}>
-        <div style={{ ...cardStyle, borderLeft: '4px solid #F59E0B', background: '#FFFBEB' }}>
-          <strong style={{ color: '#92400E' }}>Disclaimer:</strong>
-          <p style={{ margin: '0.45rem 0 0', color: '#78350F', lineHeight: 1.55 }}>
-            This platform is provided strictly for educational and informational purposes. It does not constitute financial,
-            investment, legal, or tax advice. You are solely responsible for any decisions you make. The platform owners,
-            contributors, and maintainers accept no liability for losses, damages, or outcomes arising from the use of this website.
-          </p>
-        </div>
-      </footer>
+      <CommonFooter />
+
     </div>
   );
 };

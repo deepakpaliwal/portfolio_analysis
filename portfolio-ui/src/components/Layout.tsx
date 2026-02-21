@@ -3,6 +3,8 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/store';
 import { logout } from '../store/slices/authSlice';
 import logo from '../assets/logo.svg';
+import CommonHeader from './CommonHeader';
+import CommonFooter from './CommonFooter';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -72,11 +74,12 @@ const Layout: React.FC = () => {
         </div>
       </aside>
 
-      <main style={{ flex: 1, padding: '1.6rem 1.8rem', background: 'linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%)' }}>
-        <Outlet />
-        <div style={{ marginTop: '1.6rem', fontSize: '0.8rem', color: '#64748B', background: '#fff', borderRadius: 10, padding: '0.7rem 0.9rem', border: '1px solid #E2E8F0' }}>
-          Educational use only. This platform is not financial advice and carries no liability for any investment decisions.
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%)' }}>
+        <CommonHeader />
+        <div style={{ flex: 1, padding: '1.6rem 1.8rem' }}>
+          <Outlet />
         </div>
+        <CommonFooter />
       </main>
     </div>
   );

@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '../store/store';
 import { loginSuccess } from '../store/slices/authSlice';
 import apiClient from '../api/client';
+import CommonHeader from '../components/CommonHeader';
+import CommonFooter from '../components/CommonFooter';
 import logo from '../assets/logo.svg';
 
 const Register: React.FC = () => {
@@ -79,8 +81,10 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(140deg, #0F172A, #1D4ED8)' }}>
-      <div style={{ background: '#fff', padding: '1.8rem', borderRadius: 14, width: 440, boxShadow: '0 15px 35px rgba(15,23,42,0.35)' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #F8FBFF 0%, #EEF5FF 100%)', display: 'flex', flexDirection: 'column' }}>
+      <CommonHeader />
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1.5rem' }}>
+      <div style={{ background: '#fff', padding: '1.8rem', borderRadius: 14, width: 440, boxShadow: '0 15px 35px rgba(15,23,42,0.2)' }}>
         <div style={{ textAlign: 'center' }}>
           <img src={logo} alt="Portfolio Analysis logo" style={{ height: 48, marginBottom: 8 }} />
           <h1 style={{ textAlign: 'center', marginBottom: '0.4rem', color: '#0F172A', fontSize: '1.45rem' }}>Create account</h1>
@@ -147,6 +151,8 @@ const Register: React.FC = () => {
           </p>
         </form>
       </div>
+      </div>
+      <CommonFooter />
     </div>
   );
 };
