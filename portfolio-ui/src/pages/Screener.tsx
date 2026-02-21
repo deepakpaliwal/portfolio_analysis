@@ -50,7 +50,7 @@ const pctColor = (v: number | null | undefined) => v == null ? '#888' : v >= 0 ?
 
 const inputStyle = { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: 4, boxSizing: 'border-box' as const };
 const btnStyle = { padding: '0.5rem 1rem', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' as const, fontWeight: 600 as const };
-const cardStyle = { background: '#fff', padding: '1.5rem', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
+const cardStyle = { background: '#ffffff', padding: '1.25rem', borderRadius: 14, boxShadow: '0 10px 24px rgba(15,23,42,0.08)', border: '1px solid #E2E8F0' };
 const tabStyle = (active: boolean) => ({ padding: '0.5rem 1rem', border: 'none', cursor: 'pointer' as const, fontWeight: 600 as const, borderBottom: active ? '2px solid #1a1a2e' : '2px solid transparent', background: 'transparent', color: active ? '#1a1a2e' : '#888' });
 
 const SECTORS = ['Technology', 'Healthcare', 'Financials', 'Consumer Discretionary', 'Consumer Staples', 'Energy', 'Industrials', 'Utilities', 'Real Estate', 'Materials', 'Communication Services'];
