@@ -26,10 +26,11 @@ interface ScheduleConfig {
 /* ── Styles ── */
 
 const card: React.CSSProperties = {
-  background: '#fff',
-  padding: '1.5rem',
-  borderRadius: 8,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  background: '#ffffff',
+  padding: '1.25rem',
+  borderRadius: 14,
+  boxShadow: '0 10px 24px rgba(15,23,42,0.08)',
+  border: '1px solid #E2E8F0',
 };
 
 const btnPrimary: React.CSSProperties = {
