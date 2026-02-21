@@ -1,0 +1,14 @@
+<svg width="920" height="520" viewBox="0 0 920 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="920" height="520" rx="24" fill="#0F172A"/>
+  <rect x="28" y="28" width="864" height="464" rx="18" fill="#111F39"/>
+  <path d="M64 396C126 352 152 300 212 292C275 283 313 332 374 322C432 312 470 246 530 238C603 228 641 286 698 270C752 254 787 193 854 146" stroke="#22D3EE" stroke-width="6" stroke-linecap="round"/>
+  <path d="M64 420H856" stroke="#334155" stroke-width="2"/>
+  <path d="M64 360H856" stroke="#1E293B" stroke-width="2"/>
+  <path d="M64 300H856" stroke="#1E293B" stroke-width="2"/>
+  <path d="M64 240H856" stroke="#1E293B" stroke-width="2"/>
+  <path d="M64 180H856" stroke="#1E293B" stroke-width="2"/>
+  <circle cx="530" cy="238" r="8" fill="#38BDF8"/>
+  <rect x="600" y="72" width="250" height="110" rx="14" fill="#1E293B"/>
+  <text x="620" y="108" fill="#94A3B8" font-size="18" font-family="Inter, Arial, sans-serif">Portfolio Value</text>
+  <text x="620" y="145" fill="#F8FAFC" font-size="32" font-family="Inter, Arial, sans-serif" font-weight="700">$182,450</text>
+</svg>
