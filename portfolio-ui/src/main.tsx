@@ -5,6 +5,7 @@ import { Provider } from "react-redux";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { store } from "./store/store";
 import App from "./App";
+import "./styles.css";
 
 /**
  * Configure React Query client with sensible defaults for financial data.
