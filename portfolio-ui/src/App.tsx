@@ -13,6 +13,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import Home from "./pages/Home";
 
 /**
  * ProtectedRoute wrapper — redirects unauthenticated users to /login.
@@ -50,6 +51,7 @@ const App: React.FC = () => {
   return (
     <Routes>
       {/* Public routes */}
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
@@ -61,7 +63,6 @@ const App: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="portfolio" element={<Portfolio />} />
         <Route path="screener" element={<Screener />} />
