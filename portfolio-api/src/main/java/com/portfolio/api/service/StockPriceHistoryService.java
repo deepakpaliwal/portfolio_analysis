@@ -101,18 +101,32 @@ public class StockPriceHistoryService {
      */
     @Transactional
     public int syncTickerHistory(String ticker) {
-        long now = Instant.now().getEpochSecond();
-        long fiveYearsAgo = now - ((long) LOOKBACK_YEARS * 365 * 24 * 60 * 60);
+        String symbol = ticker.toUpperCase().trim();
+        LocalDate today = LocalDate.now();
 
-        Map<String, Object> candles = marketDataService.getStockCandles(ticker, "D", fiveYearsAgo, now);
+        LocalDate fromDate = priceHistoryRepository.findTopByTickerOrderByTradeDateDesc(symbol)
+                .map(StockPriceHistory::getTradeDate)
+                .map(d -> d.plusDays(1))
+                .orElse(today.minusYears(LOOKBACK_YEARS));
+
+        // Delta pull no-op: if already synced through today, skip API call entirely.
+        if (!fromDate.isBefore(today)) {
+            log.info("Ticker {} is already up to date in stock_price_history (fromDate={})", symbol, fromDate);
+            return 0;
+        }
+
+        long fromEpoch = fromDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
+        long toEpoch = today.atTime(23, 59, 59).toEpochSecond(ZoneOffset.UTC);
+
+        Map<String, Object> candles = marketDataService.getStockCandles(symbol, "D", fromEpoch, toEpoch);
 
         if (candles == null) {
-            throw new RuntimeException("No candle data returned for " + ticker);
+            throw new RuntimeException("No candle data returned for " + symbol);
         }
 
         Object status = candles.get("s");
         if (!"ok".equals(status)) {
-            throw new RuntimeException("Candle API returned status: " + status + " for " + ticker);
+            throw new RuntimeException("Candle API returned status: " + status + " for " + symbol);
         }
 
         @SuppressWarnings("unchecked")
@@ -129,12 +143,12 @@ public class StockPriceHistoryService {
         List<Number> timestamps = (List<Number>) candles.get("t");
 
         if (closes == null || timestamps == null || closes.size() != timestamps.size()) {
-            throw new RuntimeException("Invalid candle data structure for " + ticker);
+            throw new RuntimeException("Invalid candle data structure for " + symbol);
         }
 
         // Load existing dates for this ticker to avoid duplicate inserts
         Set<LocalDate> existingDates = new HashSet<>();
-        priceHistoryRepository.findByTickerOrderByTradeDateAsc(ticker)
+        priceHistoryRepository.findByTickerOrderByTradeDateAsc(symbol)
                 .forEach(p -> existingDates.add(p.getTradeDate()));
 
         List<StockPriceHistory> newRecords = new ArrayList<>();
@@ -147,7 +161,7 @@ public class StockPriceHistoryService {
             }
 
             StockPriceHistory record = new StockPriceHistory();
-            record.setTicker(ticker);
+            record.setTicker(symbol);
             record.setTradeDate(tradeDate);
             record.setClosePrice(BigDecimal.valueOf(closes.get(i).doubleValue()));
 
