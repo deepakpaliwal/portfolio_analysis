@@ -19,7 +19,8 @@ public class TradingAdvisorService {
     }
 
     public TradingAdvisorResponse analyze(String symbol, BigDecimal positionValue, int lookbackDays) {
-        String ticker = symbol.toUpperCase().trim();
+        String ticker = symbol == null ? "" : symbol.toUpperCase().trim();
+        if (ticker.isBlank()) throw new IllegalArgumentException("Ticker is required");
         int synced = priceHistoryService.syncTickerHistory(ticker);
 
         LocalDate to = LocalDate.now();

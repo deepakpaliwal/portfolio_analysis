@@ -101,7 +101,11 @@ public class StockPriceHistoryService {
      */
     @Transactional
     public int syncTickerHistory(String ticker) {
-        String symbol = ticker.toUpperCase().trim();
+        String symbol = ticker == null ? "" : ticker.toUpperCase().trim();
+        if (symbol.isBlank()) {
+            throw new IllegalArgumentException("Ticker is required");
+        }
+
         LocalDate today = LocalDate.now();
 
         LocalDate fromDate = priceHistoryRepository.findTopByTickerOrderByTradeDateDesc(symbol)
@@ -120,13 +124,12 @@ public class StockPriceHistoryService {
 
         Map<String, Object> candles = marketDataService.getStockCandles(symbol, "D", fromEpoch, toEpoch);
 
-        if (candles == null) {
-            throw new RuntimeException("No candle data returned for " + symbol);
-        }
-
-        Object status = candles.get("s");
-        if (!"ok".equals(status)) {
-            throw new RuntimeException("Candle API returned status: " + status + " for " + symbol);
+        if (candles == null || !"ok".equals(candles.get("s"))) {
+            log.info("Primary candle source unavailable for {} (status={}), falling back to batch fetch", symbol,
+                    candles == null ? "null" : candles.get("s"));
+            int fallbackCount = priceFetchBatchService.fetchSingleTicker(symbol);
+            log.info("Fallback batch fetch completed for {} with {} new records", symbol, fallbackCount);
+            return fallbackCount;
         }
 
         @SuppressWarnings("unchecked")
