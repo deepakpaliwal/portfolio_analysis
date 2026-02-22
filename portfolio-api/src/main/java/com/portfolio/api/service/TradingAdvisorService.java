@@ -19,6 +19,14 @@ public class TradingAdvisorService {
     }
 
     public TradingAdvisorResponse analyze(String symbol, BigDecimal positionValue, int lookbackDays) {
+        return analyzeInternal(symbol, positionValue, lookbackDays, false);
+    }
+
+    public TradingAdvisorResponse analyzeCrypto(String symbol, BigDecimal positionValue, int lookbackDays) {
+        return analyzeInternal(symbol, positionValue, lookbackDays, true);
+    }
+
+    private TradingAdvisorResponse analyzeInternal(String symbol, BigDecimal positionValue, int lookbackDays, boolean crypto) {
         String ticker = symbol == null ? "" : symbol.toUpperCase().trim();
         if (ticker.isBlank()) throw new IllegalArgumentException("Ticker is required");
         int synced = priceHistoryService.syncTickerHistory(ticker);
@@ -30,17 +38,32 @@ public class TradingAdvisorService {
 
         if (closes.length < 30) throw new IllegalArgumentException("Not enough historical data for " + ticker);
 
+        double last = closes[closes.length - 1];
+
         TradingAdvisorResponse resp = new TradingAdvisorResponse();
         resp.setTicker(ticker);
         resp.setRecordsSynced(synced);
         resp.setStoredRecords(priceHistoryService.getRecordCount(ticker));
 
-        Map<String, Object> profile = marketDataService.getCompanyProfile(ticker);
         Map<String, Object> quote = marketDataService.getQuote(ticker);
-        resp.setName(str(profile, "name"));
-        resp.setIndustry(str(profile, "finnhubIndustry"));
-        resp.setCurrentPrice(num(quote, "c"));
-        resp.setChangePercent(num(quote, "dp"));
+        BigDecimal quotedPrice = num(quote, "c");
+        BigDecimal quotedChangePercent = num(quote, "dp");
+
+        if (crypto) {
+            resp.setName(ticker);
+            resp.setIndustry("Cryptocurrency");
+        } else {
+            Map<String, Object> profile = marketDataService.getCompanyProfile(ticker);
+            resp.setName(str(profile, "name"));
+            resp.setIndustry(str(profile, "finnhubIndustry"));
+        }
+        resp.setCurrentPrice(quotedPrice != null ? quotedPrice : bd(last));
+        if (quotedChangePercent != null) {
+            resp.setChangePercent(quotedChangePercent);
+        } else if (closes.length > 1 && closes[closes.length - 2] != 0) {
+            double fallbackChangePercent = ((last / closes[closes.length - 2]) - 1) * 100;
+            resp.setChangePercent(bd(fallbackChangePercent));
+        }
 
         TradingAdvisorResponse.Indicators ind = new TradingAdvisorResponse.Indicators();
         double sma20 = sma(closes, 20);
@@ -69,7 +92,6 @@ public class TradingAdvisorService {
         risk.setVar99(bd(Math.abs(var99)));
         resp.setRisk(risk);
 
-        double last = closes[closes.length - 1];
         String reco;
         String rationale;
         if (last > sma20 && macd > 0 && rsi14 < 70) {
