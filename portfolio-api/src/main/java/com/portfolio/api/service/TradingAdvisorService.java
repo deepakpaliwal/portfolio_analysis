@@ -5,7 +5,10 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -23,7 +26,49 @@ public class TradingAdvisorService {
     }
 
     public TradingAdvisorResponse analyzeCrypto(String symbol, BigDecimal positionValue, int lookbackDays) {
-        return analyzeInternal(symbol, positionValue, lookbackDays, true);
+        return analyzeCrypto(symbol, positionValue, lookbackDays, "60");
+    }
+
+    public TradingAdvisorResponse analyzeCrypto(String symbol, BigDecimal positionValue, int lookbackDays, String resolution) {
+        String interval = normalizeResolution(resolution);
+        if ("D".equals(interval)) {
+            return analyzeInternal(symbol, positionValue, lookbackDays, true);
+        }
+
+        String ticker = symbol == null ? "" : symbol.toUpperCase().trim();
+        if (ticker.isBlank()) throw new IllegalArgumentException("Ticker is required");
+
+        LocalDate toDate = LocalDate.now();
+        LocalDate fromDate = toDate.minusDays(Math.max(lookbackDays, 10));
+        long fromEpoch = fromDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
+        long toEpoch = toDate.atTime(23, 59, 59).toEpochSecond(ZoneOffset.UTC);
+
+        Map<String, Object> candles = marketDataService.getStockCandles(ticker, interval, fromEpoch, toEpoch);
+        @SuppressWarnings("unchecked")
+        List<Number> closesRaw = candles == null ? null : (List<Number>) candles.get("c");
+        @SuppressWarnings("unchecked")
+        List<Number> timestamps = candles == null ? null : (List<Number>) candles.get("t");
+
+        if (candles == null || !"ok".equals(candles.get("s")) || closesRaw == null || timestamps == null || closesRaw.size() < 30) {
+            throw new IllegalArgumentException("Not enough hourly historical data for " + ticker);
+        }
+
+        int size = Math.min(closesRaw.size(), timestamps.size());
+        double[] closes = new double[size];
+        for (int i = 0; i < size; i++) closes[i] = closesRaw.get(i).doubleValue();
+
+        TradingAdvisorResponse resp = buildBaseResponse(ticker, positionValue, closes, true);
+
+        List<TradingAdvisorResponse.ChartPoint> chart = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            String ts = Instant.ofEpochSecond(timestamps.get(i).longValue())
+                    .atOffset(ZoneOffset.UTC)
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            chart.add(new TradingAdvisorResponse.ChartPoint(ts, bd(closes[i])));
+        }
+        resp.setChart(chart);
+        resp.setRecordsSynced(0);
+        return resp;
     }
 
     private TradingAdvisorResponse analyzeInternal(String symbol, BigDecimal positionValue, int lookbackDays, boolean crypto) {
@@ -38,11 +83,24 @@ public class TradingAdvisorService {
 
         if (closes.length < 30) throw new IllegalArgumentException("Not enough historical data for " + ticker);
 
-        double last = closes[closes.length - 1];
+        TradingAdvisorResponse resp = buildBaseResponse(ticker, positionValue, closes, crypto);
+        resp.setRecordsSynced(synced);
+        resp.setStoredRecords(priceHistoryService.getRecordCount(ticker));
 
+        List<TradingAdvisorResponse.ChartPoint> chart = new ArrayList<>();
+        int size = Math.min(closes.length, dates.size());
+        for (int i = 0; i < size; i++) {
+            chart.add(new TradingAdvisorResponse.ChartPoint(dates.get(i).toString(), bd(closes[i])));
+        }
+        resp.setChart(chart);
+
+        return resp;
+    }
+
+    private TradingAdvisorResponse buildBaseResponse(String ticker, BigDecimal positionValue, double[] closes, boolean crypto) {
+        double last = closes[closes.length - 1];
         TradingAdvisorResponse resp = new TradingAdvisorResponse();
         resp.setTicker(ticker);
-        resp.setRecordsSynced(synced);
         resp.setStoredRecords(priceHistoryService.getRecordCount(ticker));
 
         Map<String, Object> quote = marketDataService.getQuote(ticker);
@@ -72,9 +130,8 @@ public class TradingAdvisorService {
         double ema12 = ema(closes, 12);
         double ema26 = ema(closes, 26);
         double macd = ema12 - ema26;
-        double signal9 = macd; // approximation for lightweight advisor
+        double signal9 = macd;
         double annualVol = annualizedVol(returns(closes));
-
         ind.setSma20(bd(sma20));
         ind.setEma20(bd(ema20));
         ind.setRsi14(bd(rsi14));
@@ -86,7 +143,6 @@ public class TradingAdvisorService {
         double[] rets = returns(closes);
         double var95 = historicalVar(rets, 0.95) * positionValue.doubleValue();
         double var99 = historicalVar(rets, 0.99) * positionValue.doubleValue();
-
         TradingAdvisorResponse.Risk risk = new TradingAdvisorResponse.Risk();
         risk.setVar95(bd(Math.abs(var95)));
         risk.setVar99(bd(Math.abs(var99)));
@@ -106,13 +162,16 @@ public class TradingAdvisorService {
         }
         resp.setRecommendation(reco);
         resp.setRationale(rationale);
-
-        List<TradingAdvisorResponse.ChartPoint> chart = new ArrayList<>();
-        int size = Math.min(closes.length, dates.size());
-        for (int i = 0; i < size; i++) chart.add(new TradingAdvisorResponse.ChartPoint(dates.get(i).toString(), bd(closes[i])));
-        resp.setChart(chart);
-
         return resp;
+    }
+
+    private String normalizeResolution(String resolution) {
+        String v = resolution == null ? "60" : resolution.trim().toUpperCase(Locale.ROOT);
+        return switch (v) {
+            case "D", "1D", "DAILY" -> "D";
+            case "60", "1H", "H", "HOURLY" -> "60";
+            default -> throw new IllegalArgumentException("Unsupported resolution. Use '60' or 'D'.");
+        };
     }
 
     private BigDecimal num(Map<String, Object> map, String key) {
@@ -121,45 +180,62 @@ public class TradingAdvisorService {
         if (v instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
         return null;
     }
-    private String str(Map<String, Object> map, String key) { return map == null || map.get(key) == null ? null : String.valueOf(map.get(key)); }
-    private BigDecimal bd(double x) { return BigDecimal.valueOf(x).setScale(4, RoundingMode.HALF_UP); }
+
+    private String str(Map<String, Object> map, String key) {
+        return map == null || map.get(key) == null ? null : String.valueOf(map.get(key));
+    }
+
+    private BigDecimal bd(double x) {
+        return BigDecimal.valueOf(x).setScale(4, RoundingMode.HALF_UP);
+    }
 
     private double sma(double[] v, int n) {
-        int s = Math.max(0, v.length - n); double sum = 0; for (int i=s;i<v.length;i++) sum += v[i]; return sum / (v.length - s);
+        int s = Math.max(0, v.length - n);
+        double sum = 0;
+        for (int i = s; i < v.length; i++) sum += v[i];
+        return sum / (v.length - s);
     }
+
     private double ema(double[] v, int n) {
-        double k = 2.0 / (n + 1); double e = v[0];
-        for (int i=1;i<v.length;i++) e = v[i] * k + e * (1 - k);
+        double k = 2.0 / (n + 1);
+        double e = v[0];
+        for (int i = 1; i < v.length; i++) e = v[i] * k + e * (1 - k);
         return e;
     }
+
     private double[] returns(double[] v) {
         double[] r = new double[Math.max(0, v.length - 1)];
-        for (int i=1;i<v.length;i++) r[i-1] = (v[i]/v[i-1]) - 1.0;
+        for (int i = 1; i < v.length; i++) r[i - 1] = (v[i] / v[i - 1]) - 1.0;
         return r;
     }
+
     private double rsi(double[] v, int n) {
         int start = Math.max(1, v.length - n);
         double gain = 0, loss = 0;
-        for (int i=start;i<v.length;i++) {
-            double d = v[i] - v[i-1];
-            if (d >= 0) gain += d; else loss -= d;
+        for (int i = start; i < v.length; i++) {
+            double d = v[i] - v[i - 1];
+            if (d >= 0) gain += d;
+            else loss -= d;
         }
         if (loss == 0) return 100;
         double rs = (gain / n) / (loss / n);
         return 100 - (100 / (1 + rs));
     }
+
     private double annualizedVol(double[] r) {
         if (r.length < 2) return 0;
         double m = Arrays.stream(r).average().orElse(0);
-        double var = 0; for (double x : r) var += (x-m)*(x-m);
+        double var = 0;
+        for (double x : r) var += (x - m) * (x - m);
         double sd = Math.sqrt(var / (r.length - 1));
         return sd * Math.sqrt(252);
     }
+
     private double historicalVar(double[] r, double confidence) {
         if (r.length == 0) return 0;
         double[] c = Arrays.copyOf(r, r.length);
         Arrays.sort(c);
-        int idx = Math.max(0, (int)Math.floor((1.0 - confidence) * c.length) - 1);
+        int idx = Math.max(0, (int) Math.floor((1.0 - confidence) * c.length) - 1);
         return Math.min(c[idx], 0);
     }
 }

@@ -65,7 +65,8 @@ const bollinger = (values: number[], period = 20, k = 2) => {
 const CryptoTradingAdvisor: React.FC = () => {
   const [ticker, setTicker] = useState('BTC-USD');
   const [positionValue, setPositionValue] = useState('10000');
-  const [lookbackDays, setLookbackDays] = useState('252');
+  const [lookbackDays, setLookbackDays] = useState('30');
+  const [resolution, setResolution] = useState('60');
   const [fastPeriod, setFastPeriod] = useState('20');
   const [slowPeriod, setSlowPeriod] = useState('50');
   const [bbPeriod, setBbPeriod] = useState('20');
@@ -82,7 +83,7 @@ const CryptoTradingAdvisor: React.FC = () => {
   const runAdvisor = async () => {
     setLoading(true); setError('');
     try {
-      const res = await apiClient.get(`/v1/advisor/crypto/${ticker.toUpperCase()}?positionValue=${positionValue}&lookbackDays=${lookbackDays}`);
+      const res = await apiClient.get(`/v1/advisor/crypto/${ticker.toUpperCase()}?positionValue=${positionValue}&lookbackDays=${lookbackDays}&resolution=${resolution}`);
       setData(res.data);
     } catch {
       setError('Failed to run crypto advisor for ticker');
@@ -151,6 +152,13 @@ const CryptoTradingAdvisor: React.FC = () => {
         <div><label>Crypto Symbol</label><br /><input value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} /></div>
         <div><label>Position Value (USD)</label><br /><input value={positionValue} onChange={(e) => setPositionValue(e.target.value)} /></div>
         <div><label>Lookback Days</label><br /><input value={lookbackDays} onChange={(e) => setLookbackDays(e.target.value)} style={{ width: 110 }} /></div>
+        <div>
+          <label>Interval</label><br />
+          <select value={resolution} onChange={(e) => setResolution(e.target.value)}>
+            <option value="60">Hourly (1h)</option>
+            <option value="D">Daily (1d)</option>
+          </select>
+        </div>
         <button onClick={runAdvisor} disabled={loading}>{loading ? 'Analyzing...' : 'Run Advisor'}</button>
       </div>
 

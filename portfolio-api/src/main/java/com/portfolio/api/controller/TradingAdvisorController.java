@@ -34,7 +34,8 @@ public class TradingAdvisorController {
     public ResponseEntity<TradingAdvisorResponse> analyzeCrypto(
             @PathVariable String ticker,
             @RequestParam(defaultValue = "10000") BigDecimal positionValue,
-            @RequestParam(defaultValue = "252") int lookbackDays) {
-        return ResponseEntity.ok(tradingAdvisorService.analyzeCrypto(ticker, positionValue, lookbackDays));
+            @RequestParam(defaultValue = "252") int lookbackDays,
+            @RequestParam(defaultValue = "60") String resolution) {
+        return ResponseEntity.ok(tradingAdvisorService.analyzeCrypto(ticker, positionValue, lookbackDays, resolution));
     }
 }
