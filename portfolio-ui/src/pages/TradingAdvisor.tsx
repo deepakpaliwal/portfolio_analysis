@@ -20,6 +20,40 @@ interface AdvisorData {
 
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '1rem' };
 
+const movingAverage = (values: number[], period: number): Array<number | null> => {
+  const out: Array<number | null> = [];
+  for (let i = 0; i < values.length; i++) {
+    if (i < period - 1) {
+      out.push(null);
+      continue;
+    }
+    let sum = 0;
+    for (let j = i - period + 1; j <= i; j++) sum += values[j];
+    out.push(sum / period);
+  }
+  return out;
+};
+
+const bollinger = (values: number[], period = 20, k = 2) => {
+  const mid = movingAverage(values, period);
+  const upper: Array<number | null> = [];
+  const lower: Array<number | null> = [];
+  for (let i = 0; i < values.length; i++) {
+    if (i < period - 1 || mid[i] === null) {
+      upper.push(null);
+      lower.push(null);
+      continue;
+    }
+    const window = values.slice(i - period + 1, i + 1);
+    const mean = mid[i] as number;
+    const variance = window.reduce((acc, v) => acc + (v - mean) ** 2, 0) / period;
+    const sd = Math.sqrt(variance);
+    upper.push(mean + k * sd);
+    lower.push(mean - k * sd);
+  }
+  return { mid, upper, lower };
+};
+
 const TradingAdvisor: React.FC = () => {
   const [ticker, setTicker] = useState('AAPL');
   const [positionValue, setPositionValue] = useState('10000');
@@ -37,16 +71,44 @@ const TradingAdvisor: React.FC = () => {
     } finally { setLoading(false); }
   };
 
-  const points = useMemo(() => {
-    if (!data?.chart?.length) return '';
+  const chartLines = useMemo(() => {
+    if (!data?.chart?.length) return { price: '', ma20: '', ma50: '', bbUpper: '', bbLower: '' };
+
     const w = 760, h = 220;
-    const values = data.chart.map((p) => p.close);
-    const min = Math.min(...values), max = Math.max(...values);
-    return data.chart.map((p, i) => {
-      const x = (i / (data.chart.length - 1)) * w;
-      const y = h - ((p.close - min) / ((max - min) || 1)) * h;
-      return `${x},${y}`;
-    }).join(' ');
+    const close = data.chart.map((p) => p.close);
+    const ma20 = movingAverage(close, 20);
+    const ma50 = movingAverage(close, 50);
+    const bb = bollinger(close, 20, 2);
+
+    const all = [
+      ...close,
+      ...ma20.filter((v): v is number => v !== null),
+      ...ma50.filter((v): v is number => v !== null),
+      ...bb.upper.filter((v): v is number => v !== null),
+      ...bb.lower.filter((v): v is number => v !== null),
+    ];
+
+    const min = Math.min(...all);
+    const max = Math.max(...all);
+
+    const mapPoints = (series: Array<number | null>) =>
+      series
+        .map((v, i) => {
+          if (v === null) return '';
+          const x = (i / (series.length - 1)) * w;
+          const y = h - ((v - min) / ((max - min) || 1)) * h;
+          return `${x},${y}`;
+        })
+        .filter(Boolean)
+        .join(' ');
+
+    return {
+      price: mapPoints(close),
+      ma20: mapPoints(ma20),
+      ma50: mapPoints(ma50),
+      bbUpper: mapPoints(bb.upper),
+      bbLower: mapPoints(bb.lower),
+    };
   }, [data]);
 
   return (
@@ -82,9 +144,19 @@ const TradingAdvisor: React.FC = () => {
           </div>
 
           <div style={card}>
-            <h3 style={{ marginTop: 0 }}>Price Chart (1Y)</h3>
+            <h3 style={{ marginTop: 0 }}>Price Chart + Indicators</h3>
+            <div style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>
+              <span style={{ color: '#2563EB' }}>■ Price</span>{'  '}
+              <span style={{ color: '#9333EA' }}>■ MA20</span>{'  '}
+              <span style={{ color: '#EA580C' }}>■ MA50</span>{'  '}
+              <span style={{ color: '#0EA5E9' }}>■ Bollinger Upper/Lower</span>
+            </div>
             <svg viewBox="0 0 760 220" width="100%" height="240" style={{ background: '#F8FAFC', borderRadius: 8 }}>
-              <polyline fill="none" stroke="#2563EB" strokeWidth="2" points={points} />
+              <polyline fill="none" stroke="#0EA5E9" strokeWidth="1.5" strokeDasharray="3 3" points={chartLines.bbUpper} />
+              <polyline fill="none" stroke="#0EA5E9" strokeWidth="1.5" strokeDasharray="3 3" points={chartLines.bbLower} />
+              <polyline fill="none" stroke="#EA580C" strokeWidth="1.8" points={chartLines.ma50} />
+              <polyline fill="none" stroke="#9333EA" strokeWidth="1.8" points={chartLines.ma20} />
+              <polyline fill="none" stroke="#2563EB" strokeWidth="2" points={chartLines.price} />
             </svg>
           </div>
         </>
