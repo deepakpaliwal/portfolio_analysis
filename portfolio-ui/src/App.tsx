@@ -7,12 +7,14 @@ import Portfolio from "./pages/Portfolio";
 import Screener from "./pages/Screener";
 import RiskAnalytics from "./pages/RiskAnalytics";
 import Trading from "./pages/Trading";
+import TradingAdvisor from "./pages/TradingAdvisor";
 import BatchManagement from "./pages/BatchManagement";
 import CorrelationAnalysis from "./pages/CorrelationAnalysis";
 import AdminPanel from "./pages/AdminPanel";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import Home from "./pages/Home";
 
 /**
  * ProtectedRoute wrapper — redirects unauthenticated users to /login.
@@ -50,6 +52,7 @@ const App: React.FC = () => {
   return (
     <Routes>
       {/* Public routes */}
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
@@ -61,12 +64,12 @@ const App: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="portfolio" element={<Portfolio />} />
         <Route path="screener" element={<Screener />} />
         <Route path="risk" element={<RiskAnalytics />} />
         <Route path="trading" element={<Trading />} />
+        <Route path="advisor" element={<TradingAdvisor />} />
         <Route path="batch" element={<BatchManagement />} />
         <Route path="correlation" element={<CorrelationAnalysis />} />
         <Route path="admin" element={<AdminPanel />} />
