@@ -15,6 +15,7 @@ public class MarketDataService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
     private static final String YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
+    private static final String BINANCE_KLINES_URL = "https://api.binance.com/api/v3/klines";
 
     private final RestTemplate restTemplate;
     private final FinnhubConfig finnhubConfig;
@@ -280,7 +281,17 @@ public class MarketDataService {
         }
 
         // Fallback to Yahoo Finance
-        return getStockCandlesFromYahoo(ticker, from, to);
+        Map<String, Object> yahoo = getStockCandlesFromYahoo(ticker, resolution, from, to);
+        if (yahoo != null && "ok".equals(yahoo.get("s"))) {
+            return yahoo;
+        }
+
+        // Alternate fallback for crypto symbols when Yahoo is unavailable/rate-limited
+        if (isCryptoTicker(ticker)) {
+            return getCryptoCandlesFromBinance(ticker, resolution, from, to);
+        }
+
+        return null;
     }
 
     /**
@@ -288,10 +299,11 @@ public class MarketDataService {
      * Converts the Yahoo response format to the same structure as Finnhub candles.
      */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> getStockCandlesFromYahoo(String ticker, long from, long to) {
+    private Map<String, Object> getStockCandlesFromYahoo(String ticker, String resolution, long from, long to) {
         try {
-            String url = String.format("%s/%s?period1=%d&period2=%d&interval=1d",
-                    YAHOO_CHART_URL, ticker, from, to);
+            String interval = "D".equalsIgnoreCase(resolution) ? "1d" : "1h";
+            String url = String.format("%s/%s?period1=%d&period2=%d&interval=%s",
+                    YAHOO_CHART_URL, ticker, from, to, interval);
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
             if (response == null || response.get("chart") == null) {
@@ -368,4 +380,93 @@ public class MarketDataService {
             return null;
         }
     }
+
+    private boolean isCryptoTicker(String ticker) {
+        return ticker != null && (ticker.contains("-") || ticker.endsWith("USDT") || ticker.endsWith("USD"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getCryptoCandlesFromBinance(String ticker, String resolution, long from, long to) {
+        String interval = "D".equalsIgnoreCase(resolution) ? "1d" : "1h";
+        String symbol = toBinanceSymbol(ticker);
+        if (symbol == null) {
+            return null;
+        }
+
+        long startMs = from * 1000L;
+        long endMs = to * 1000L;
+
+        List<Number> ts = new ArrayList<>();
+        List<Number> o = new ArrayList<>();
+        List<Number> h = new ArrayList<>();
+        List<Number> l = new ArrayList<>();
+        List<Number> c = new ArrayList<>();
+        List<Number> v = new ArrayList<>();
+
+        try {
+            long cursor = startMs;
+            while (cursor < endMs) {
+                String url = String.format(
+                        "%s?symbol=%s&interval=%s&startTime=%d&endTime=%d&limit=1000",
+                        BINANCE_KLINES_URL, symbol, interval, cursor, endMs);
+
+                List<List<Object>> rows = restTemplate.getForObject(url, List.class);
+                if (rows == null || rows.isEmpty()) break;
+
+                for (List<Object> row : rows) {
+                    if (row.size() < 6) continue;
+                    long openTimeMs = ((Number) row.get(0)).longValue();
+                    ts.add(openTimeMs / 1000L);
+                    o.add(Double.parseDouble(String.valueOf(row.get(1))));
+                    h.add(Double.parseDouble(String.valueOf(row.get(2))));
+                    l.add(Double.parseDouble(String.valueOf(row.get(3))));
+                    c.add(Double.parseDouble(String.valueOf(row.get(4))));
+                    v.add(Double.parseDouble(String.valueOf(row.get(5))));
+                }
+
+                long lastOpenMs = ((Number) rows.get(rows.size() - 1).get(0)).longValue();
+                long stepMs = "1d".equals(interval) ? 86_400_000L : 3_600_000L;
+                long nextCursor = lastOpenMs + stepMs;
+                if (nextCursor <= cursor) break;
+                cursor = nextCursor;
+
+                if (rows.size() < 1000) break;
+            }
+
+            if (c.isEmpty()) {
+                log.warn("Binance returned no candle rows for {}", ticker);
+                return null;
+            }
+
+            Map<String, Object> candles = new HashMap<>();
+            candles.put("s", "ok");
+            candles.put("t", ts);
+            candles.put("o", o);
+            candles.put("h", h);
+            candles.put("l", l);
+            candles.put("c", c);
+            candles.put("v", v);
+            log.info("Binance returned {} price records for {}", c.size(), ticker);
+            return candles;
+        } catch (Exception e) {
+            log.error("Failed to fetch candles from Binance for {}: {}", ticker, e.getMessage());
+            return null;
+        }
+    }
+
+    private String toBinanceSymbol(String ticker) {
+        if (ticker == null) return null;
+        String upper = ticker.toUpperCase(Locale.ROOT).trim();
+        if (upper.endsWith("-USD")) {
+            return upper.substring(0, upper.length() - 4) + "USDT";
+        }
+        if (upper.endsWith("-USDT")) {
+            return upper.replace("-", "");
+        }
+        if (upper.endsWith("USDT")) {
+            return upper;
+        }
+        return null;
+    }
+
 }
