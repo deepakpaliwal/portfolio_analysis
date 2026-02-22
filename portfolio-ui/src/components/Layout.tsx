@@ -13,6 +13,7 @@ const navItems = [
   { to: '/risk', label: 'Risk Analytics' },
   { to: '/trading', label: 'Trading' },
   { to: '/advisor', label: 'Trading Advisor' },
+  { to: '/advisor/crypto', label: 'Crypto Advisor' },
   { to: '/batch', label: 'Batch Prices' },
   { to: '/correlation', label: 'Correlation' },
 ];
